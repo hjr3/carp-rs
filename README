@@ -27,6 +27,14 @@ development files (headers).
 
 Then, follow the boring traditional procedure:
 
+On Ubuntu: apt-get install libtool autoconf gettext libpcap0.8 libpcap0.8-dev libpcap-dev sqlite3 libsqlite3-dev
+
+libtoolize
+gettextize -f
+
+cp po/Makevars.template po/Makevars
+autoreconf -i
+
 ./configure
 make install-strip
 
