@@ -1,3 +1,22 @@
+/*
+ * Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
+ *
+ * This file is part of carp-rs.
+ *
+ * carp-rs is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * carp-rs is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <config.h>
 #include "daemonize.h"
 #include "ucarp.h"
@@ -72,7 +91,12 @@ void dodaemonize(void)
             _exit(EXIT_SUCCESS);       /* parent exits */
         }
 
-        chdir("/");
+        if (chdir("/") == -1) {
+            logfile(LOG_ERR, "Unable to chdir: %s",
+                    strerror(errno));
+            return;
+	}
+
         i = open_max();
         do {
             if (isatty((int) i)) {
