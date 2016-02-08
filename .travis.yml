@@ -8,6 +8,11 @@ rust:
   - beta
   - stable
 
+matrix:
+  allow_failures:
+    - rust: stable
+    - rust: beta
+
 before_script:
   - sudo apt-get -qq update
   - sudo apt-get -y install libtool autoconf libpcap-dev sqlite3 libsqlite3-dev

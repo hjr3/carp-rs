@@ -1,8 +1,8 @@
-AC_PREREQ(2.59)	
+AC_PREREQ(2.59)
 AC_INIT([ucarp],[1.5.2],[bugs at ucarp dot org])
 AC_CONFIG_SRCDIR([src/ucarp.c])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([1.9 dist-bzip2])
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_LIBOBJ_DIR(src)
 
 AC_SUBST(VERSION)
@@ -14,7 +14,7 @@ AC_SUBST(ISODATE)
 AC_PROG_CC
 AC_PROG_CC_C_O
 AC_PROG_CPP
-AC_USE_SYSTEM_EXTENSIONS 
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
@@ -182,7 +182,7 @@ else
   else
     CONFDIR="$sysconfdir"
   fi
-fi  
+fi
 
 if test -r /dev/arandom; then
   AC_MSG_NOTICE([You have /dev/arandom - Great])
@@ -215,7 +215,7 @@ AC_RUN_IFELSE([AC_LANG_SOURCE([[
 int main(void)
 {
     char buf[4];
-    
+
     (void) fprintf(fopen("conftestval", "w"), "%d\n",
         (int) snprintf(buf, sizeof buf, "12345678"));
     return 0;
@@ -241,12 +241,12 @@ int main(void)
 {
     SHA1_CTX ctx;
     char b[41];
-    
+
     SHA1Init(&ctx);
     SHA1Update(&ctx, (const unsigned char *) "test", 4U);
     SHA1End(&ctx, b);
     b[40] = 0;
-    
+
     return strcasecmp(b, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3");
 }
 ]])],[
@@ -281,8 +281,4 @@ AC_CONFIG_FILES(Makefile src/Makefile)
 
 AC_OUTPUT
 
-AC_MSG_NOTICE([+--------------------------------------------------------+])
-AC_MSG_NOTICE([| You can subscribe to the UCARP users mailing-list to   |])
-AC_MSG_NOTICE([| ask for help and to stay informed of new releases.     |])
-AC_MSG_NOTICE([| Go to http://www.ucarp.org/ml/ now!                    |])
-AC_MSG_NOTICE([+--------------------------------------------------------+])
+AC_MSG_NOTICE([| You can now use cargo build to create libcarp.a        |])

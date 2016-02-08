@@ -29,7 +29,6 @@ libcarp_a_SOURCES = \
 	ucarp.h \
 	carp.c \
 	carp_p.h \
-	ucarp_p.h \
 	ip_carp.h \
 	crypto-sha1.c \
 	crypto.h \
@@ -37,8 +36,6 @@ libcarp_a_SOURCES = \
 	globals.h \
 	fillmac.c \
 	fillmac.h \
-	bsd-getopt_long.h \
-	bsd-getopt_long.c \
 	garp.c \
 	garp.h \
 	spawn.c \
@@ -49,8 +46,6 @@ libcarp_a_SOURCES = \
 	mysnprintf.h \
 	log.c \
 	log.h \
-	daemonize.c \
-	daemonize.h \
 	syslognames.h
 
 libcarp_a_LIBADD = \
