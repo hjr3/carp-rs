@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
+ *
+ * This file is part of carp-rs.
+ *
+ * carp-rs is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * carp-rs is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #define DEFINE_GLOBALS 1
 
@@ -7,9 +25,6 @@
 # include "bsd-getopt_long.h"
 #else
 # include <getopt.h>
-#endif
-#ifdef HAVE_SETLOCALE
-# include <locale.h>
 #endif
 #include "log.h"
 #include "daemonize.h"
@@ -22,7 +37,7 @@
 static void usage(void)
 {
     puts("\n" PACKAGE_STRING " - " __DATE__ "\n");
-    fputs(_(
+    fputs(
         "--interface=<if> (-i <if>): bind interface <if>\n"
         "--srcip=<ip> (-s <ip>): source (real) IP address of that host\n"
         "--mcast=<ip> (-m <ip>): multicast group IP address (default 224.0.0.18)\n"
@@ -58,7 +73,7 @@ static void usage(void)
         "      --addr=10.1.1.252 \\\n"
         "      --upscript=/etc/vip-up.sh --downscript=/etc/vip-down.sh\n"
         "\n\n"
-        "Please report bugs to "), stdout);
+        "Please report bugs to ", stdout);
     puts(PACKAGE_BUGREPORT ".\n");
 
     exit(EXIT_SUCCESS);
@@ -80,21 +95,15 @@ static void init_rand(void)
 
 static void die_mem(void)
 {
-    logfile(LOG_ERR, _("Out of memory"));
+    logfile(LOG_ERR, "Out of memory");
 
     exit(EXIT_FAILURE);
 }
 
-int main(int argc, char *argv[])
+int libmain(int argc, char *argv[])
 {
     int option_index = 0;
     int fodder;
-
-#ifdef HAVE_SETLOCALE
-    setlocale(LC_ALL, "");
-#endif
-    bindtextdomain(PACKAGE, LOCALEDIR);
-    textdomain(PACKAGE);
 
     if (argc <= 1) {
         usage();
@@ -115,21 +124,21 @@ int main(int argc, char *argv[])
         }
         case 's': {
             if (inet_pton(AF_INET, optarg, &srcip) == 0) {
-                logfile(LOG_ERR, _("Invalid address: [%s]"), optarg);
+                logfile(LOG_ERR, "Invalid address: [%s]", optarg);
                 return 1;
             }
             break;
         }
         case 'm': {
             if (inet_pton(AF_INET, optarg, &mcastip) == 0) {
-                logfile(LOG_ERR, _("Invalid address: [%s]"), optarg);
+                logfile(LOG_ERR, "Invalid address: [%s]", optarg);
                 return 1;
             }
             break;
         }
         case 'v': {
             if (strtoul(optarg, NULL, 0) > 255 || strtol(optarg, NULL, 0) < 1) {
-                logfile(LOG_ERR, _("vhid must be between 1 and 255."));
+                logfile(LOG_ERR, "vhid must be between 1 and 255.");
                 return 1;
             }
             vhid = (unsigned char) strtoul(optarg, NULL, 0);
@@ -148,14 +157,14 @@ int main(int argc, char *argv[])
             FILE *pw;
             if ((pw = fopen(optarg, "r")) == NULL) {
                 logfile(LOG_ERR,
-                        _("unable to open passfile %s for reading: %s"),
+                        "unable to open passfile %s for reading: %s",
                         optarg, strerror(errno));
                 return 1;
             }
             if (fgets(buf, sizeof buf, pw) == NULL) {
-                logfile(LOG_ERR, _("error reading passfile %s: %s"), optarg,
+                logfile(LOG_ERR, "error reading passfile %s: %s", optarg,
                         ferror(pw) ?
-                        strerror(errno) : _("unexpected end of file"));
+                        strerror(errno) : "unexpected end of file");
                 return 1;
             }
             fclose(pw);
@@ -179,7 +188,7 @@ int main(int argc, char *argv[])
         case 'a': {
             free(vaddr_arg);
             if (inet_pton(AF_INET, optarg, &vaddr) == 0) {
-                logfile(LOG_ERR, _("Invalid address: [%s]"), optarg);
+                logfile(LOG_ERR, "Invalid address: [%s]", optarg);
                 return 1;
             }
             vaddr_arg = strdup(optarg);
@@ -241,7 +250,7 @@ int main(int argc, char *argv[])
             if (facilitynames[n].c_name) {
                 syslog_facility = facilitynames[n].c_val;
             } else {
-                logfile(LOG_ERR, _("Unknown syslog facility: [%s]"), optarg);
+                logfile(LOG_ERR, "Unknown syslog facility: [%s]", optarg);
             }
             break;
         }
@@ -269,39 +278,39 @@ int main(int argc, char *argv[])
     if (interface == NULL || *interface == 0) {
         interface = pcap_lookupdev(NULL);
         if (interface == NULL || *interface == 0) {
-            logfile(LOG_ERR, _("You must supply a network interface"));
+            logfile(LOG_ERR, "You must supply a network interface");
             return 1;
         }
-        logfile(LOG_INFO, _("Using [%s] as a network interface"), interface);
+        logfile(LOG_INFO, "Using [%s] as a network interface", interface);
     }
     if (vhid == 0) {
-        logfile(LOG_ERR, _("You must supply a valid virtual host id"));
+        logfile(LOG_ERR, "You must supply a valid virtual host id");
         return 1;
     }
     if (pass == NULL || *pass == 0) {
-        logfile(LOG_ERR, _("You must supply a password"));
+        logfile(LOG_ERR, "You must supply a password");
         return 1;
     }
     if (advbase == 0 && advskew == 0) {
-        logfile(LOG_ERR, _("You must supply an advertisement time base"));
+        logfile(LOG_ERR, "You must supply an advertisement time base");
         return 1;
     }
     if (srcip.s_addr == 0) {
-        logfile(LOG_ERR, _("You must supply a persistent source address"));
+        logfile(LOG_ERR, "You must supply a persistent source address");
         return 1;
     }
     if (vaddr.s_addr == 0) {
-        logfile(LOG_ERR, _("You must supply a virtual host address"));
+        logfile(LOG_ERR, "You must supply a virtual host address");
         return 1;
     }
     if (upscript == NULL) {
-        logfile(LOG_WARNING, _("Warning: no script called when going up"));
+        logfile(LOG_WARNING, "Warning: no script called when going up");
     }
     if (downscript == NULL) {
-        logfile(LOG_WARNING, _("Warning: no script called when going down"));
+        logfile(LOG_WARNING, "Warning: no script called when going down");
     }
     if (dead_ratio <= 0U) {
-        logfile(LOG_ERR, _("Dead ratio can't be zero"));
+        logfile(LOG_ERR, "Dead ratio can't be zero");
         return 1;
     }
     dodaemonize();

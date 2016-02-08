@@ -1,12 +1,16 @@
-language: c
+sudo: required
+dist: trusty
 
-compiler:
- - clang
- - gcc
- 
+language: rust
+
+rust:
+  - nightly
+  - beta
+  - stable
+
 before_script:
- - sudo apt-get install libpcap-dev
- - ./autogen.sh
- - ./configure --disable-dependency-tracking
- 
-script: make check
+  - sudo apt-get -qq update
+  - sudo apt-get -y install libtool autoconf libpcap-dev sqlite3 libsqlite3-dev
+  - libtoolize
+  - autoreconf -i
+  - ./configure
