@@ -70,7 +70,7 @@ void dodaemonize(void)
     /* Contributed by Jason Lunz - also based on APUI code, see open_max() */
     if (daemonize != 0) {
         if ((child = fork()) == (pid_t) -1) {
-            logfile(LOG_ERR, _("Unable to get in background: [fork: %s]"),
+            logfile(LOG_ERR, "Unable to get in background: [fork: %s]",
                     strerror(errno));
             return;
         } else if (child != (pid_t) 0) {
@@ -78,13 +78,13 @@ void dodaemonize(void)
         }
         if (setsid() == (pid_t) -1) {
             logfile(LOG_WARNING,
-                    _("Unable to detach from the current session: %s"),
+                    "Unable to detach from the current session: %s",
                     strerror(errno));  /* continue anyway */
         }
 
         /* Fork again so we're not a session leader */
         if ((child = fork()) == (pid_t) -1) {
-            logfile(LOG_ERR, _("Unable to background: [fork: %s] #2"),
+            logfile(LOG_ERR, "Unable to background: [fork: %s] #2",
                     strerror(errno));
             return;
         } else if ( child != (pid_t) 0) {
@@ -106,7 +106,7 @@ void dodaemonize(void)
         } while (i > 2U);
         if (closedesc_all(1) != 0) {
             logfile(LOG_ERR,
-                    _("Unable to detach: /dev/null can't be duplicated"));
+                    "Unable to detach: /dev/null can't be duplicated");
             _exit(EXIT_FAILURE);
         }
     }

@@ -12,6 +12,8 @@ po/ChangeLog
 po/Makefile.in.in
 po/Makevars.template
 # files not checked in
+.vagrant
+target
 ABOUT-NLS
 ChangeLog~
 INSTALL

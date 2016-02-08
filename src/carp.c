@@ -1,32 +1,52 @@
 /*
- * Copyright (c) 2004-2015 Frank Denis. All rights reserved.
+ * Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
  *
- * This crucial part of UCARP is derived from the OpenBSD project.
- * Original copyright follows.
+ * This file is part of carp-rs.
  *
- * Copyright (c) 2002 Michael Shalayeff. All rights reserved.
- * Copyright (c) 2003 Ryan McBride. All rights reserved.
+ * carp-rs is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ * carp-rs is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR OR HIS RELATIVES BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF MIND, USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ *     Copyright (c) 2004-2015 Frank Denis. All rights reserved.
+ *
+ *     This crucial part of UCARP is derived from the OpenBSD project.
+ *     Original copyright follows.
+ *
+ *     Copyright (c) 2002 Michael Shalayeff. All rights reserved.
+ *     Copyright (c) 2003 Ryan McBride. All rights reserved.
+ *
+ *     Redistribution and use in source and binary forms, with or without
+ *     modification, are permitted provided that the following conditions
+ *     are met:
+ *     1. Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ *     2. Redistributions in binary form must reproduce the above copyright
+ *        notice, this list of conditions and the following disclaimer in the
+ *        documentation and/or other materials provided with the distribution.
+ *
+ *     THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ *     IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ *     OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *     IN NO EVENT SHALL THE AUTHOR OR HIS RELATIVES BE LIABLE FOR ANY DIRECT,
+ *     INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ *     (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *     SERVICES; LOSS OF MIND, USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ *     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ *     STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ *     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ *     THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <config.h>
@@ -55,21 +75,21 @@ static void carp_set_state(struct carp_softc *sc, int state)
     }
     switch (state) {
     case INIT:
-        logfile(LOG_INFO, _("Switching to state: INIT"));
+        logfile(LOG_INFO, "Switching to state: INIT");
         break;
     case BACKUP:
-        logfile(LOG_WARNING, _("Switching to state: BACKUP"));
+        logfile(LOG_WARNING, "Switching to state: BACKUP");
         if ((sc->sc_state != INIT) || (neutral != 1)) {
             (void) spawn_handler(dev_desc_fd, downscript);
         }
         break;
     case MASTER:
-        logfile(LOG_WARNING, _("Switching to state: MASTER"));
+        logfile(LOG_WARNING, "Switching to state: MASTER");
         (void) spawn_handler(dev_desc_fd, upscript);
         gratuitous_arp(dev_desc_fd);
         break;
     default:
-        logfile(LOG_ERR, _("Unknown state: [%d]"), (int) state);
+        logfile(LOG_ERR, "Unknown state: [%d]", (int) state);
         abort();
     }
     sc->sc_state = state;
@@ -218,7 +238,7 @@ static void carp_send_ad(struct carp_softc *sc)
     ip_len = sizeof ip + sizeof ch;
     eth_len = ip_len + sizeof eh;
     if ((pkt = ALLOCA(eth_len)) == NULL) {
-        logfile(LOG_ERR, _("Out of memory to create packet"));
+        logfile(LOG_ERR, "Out of memory to create packet");
         timeradd(&now, &tv, &sc->sc_ad_tmo);
         return;
     }
@@ -283,12 +303,12 @@ static void carp_send_ad(struct carp_softc *sc)
         rc = write(dev_desc_fd, pkt, eth_len);
     } while (rc < 0 && errno == EINTR);
     if (rc < 0) {
-        logfile(LOG_WARNING, _("write() has failed: %s"), strerror(errno));
+        logfile(LOG_WARNING, "write() has failed: %s", strerror(errno));
         if (sc->sc_sendad_errors < INT_MAX) {
             sc->sc_sendad_errors++;
         }
         if (sc->sc_sendad_errors == CARP_SENDAD_MAX_ERRORS) {
-            logfile(LOG_ERR, _("write() error #%d/%d"),
+            logfile(LOG_ERR, "write() error #%d/%d",
                     carp_suppress_preempt, CARP_SENDAD_MAX_ERRORS);
             carp_suppress_preempt++;
             if (carp_suppress_preempt == 1) {
@@ -307,7 +327,7 @@ static void carp_send_ad(struct carp_softc *sc)
         }
     }
 
-    logfile(LOG_DEBUG, _("* advertisement injected *"));
+    logfile(LOG_DEBUG, "* advertisement injected *");
 
     ALLOCA_FREE(pkt);
 
@@ -335,7 +355,7 @@ static void carp_setrun(struct carp_softc *sc, sa_family_t af)
 
     logfile(LOG_DEBUG, "carp_setrun()");
     if (gettimeofday(&now, NULL) != 0) {
-        logfile(LOG_WARNING, _("initializing now to gettimeofday() failed: %s"),
+        logfile(LOG_WARNING, "initializing now to gettimeofday() failed: %s",
                 strerror(errno));
     }
     switch (sc->sc_state) {
@@ -378,7 +398,7 @@ static void carp_master_down(struct carp_softc *sc)
     logfile(LOG_DEBUG, "carp_master_down()");
     switch (sc->sc_state) {
     case INIT:
-        logfile(LOG_DEBUG, _("master_down event in INIT state"));
+        logfile(LOG_DEBUG, "master_down event in INIT state");
         break;
     case MASTER:
         break;
@@ -476,27 +496,27 @@ static void packethandler(unsigned char *dummy,
                 (unsigned long) ch.carp_counter[1]);
 #endif
         if (iphead.ip_ttl != CARP_DFLTTL) {
-            logfile(LOG_WARNING, _("Bad TTL: [%u]"),
+            logfile(LOG_WARNING, "Bad TTL: [%u]",
                     (unsigned int) iphead.ip_ttl);
             return;
         }
         if (ch.carp_version != CARP_VERSION) {
-            logfile(LOG_WARNING, _("Bad version: [%u]"),
+            logfile(LOG_WARNING, "Bad version: [%u]",
                     (unsigned int) ch.carp_version);
             return;
         }
         if (ch.carp_vhid != vhid) {
-            logfile(LOG_DEBUG, _("Ignoring vhid: [%u]"),
+            logfile(LOG_DEBUG, "Ignoring vhid: [%u]",
                     (unsigned int) ch.carp_vhid);
             return;
         }
         if (iphead.ip_dst.s_addr != mcastip.s_addr) {
-            logfile(LOG_DEBUG, _("Ignoring different multicast ip: [%s]"),
+            logfile(LOG_DEBUG, "Ignoring different multicast ip: [%s]",
                     inet_ntoa(iphead.ip_dst));
             return;
         }
         if (cksum(sp, ip_len + sizeof ch) != 0) {
-            logfile(LOG_WARNING, _("Bad IP checksum"));
+            logfile(LOG_WARNING, "Bad IP checksum");
             return;
         }
         {
@@ -519,9 +539,9 @@ static void packethandler(unsigned char *dummy,
             }
             if (memcmp(md2, ch.carp_md, sizeof md2) != 0) {
                 logfile(LOG_WARNING,
-                        _("Bad digest - "
+                        "Bad digest - "
                           "md2=[%02x%02x%02x%02x...] md=[%02x%02x%02x%02x...] - "
-                          "Check vhid, password and virtual IP address"),
+                          "Check vhid, password and virtual IP address",
                         (unsigned int) md2[0], (unsigned int) md2[1],
                         (unsigned int) md2[2], (unsigned int) md2[3],
                         (unsigned int) (ch.carp_md)[0],
@@ -573,8 +593,8 @@ static void packethandler(unsigned char *dummy,
 
                 carp_set_state(&sc, BACKUP);
                 carp_setrun(&sc, 0);
-                logfile(LOG_WARNING, _("Preferred master advertised: "
-                                       "going back to BACKUP state"));
+                logfile(LOG_WARNING, "Preferred master advertised: "
+                                       "going back to BACKUP state");
             }
 
             /*
@@ -588,8 +608,8 @@ static void packethandler(unsigned char *dummy,
                     iphead.ip_src.s_addr > srcip.s_addr)) {
                 gratuitous_arp(dev_desc_fd);
                 sc.sc_delayed_arp = 2; /* and yet another in 2 ticks */
-                logfile(LOG_WARNING, _("Non-preferred master advertising: "
-                                       "reasserting control of VIP with another gratuitous arp"));
+                logfile(LOG_WARNING, "Non-preferred master advertising: "
+                                       "reasserting control of VIP with another gratuitous arp");
             }
             break;
         case BACKUP:
@@ -599,7 +619,7 @@ static void packethandler(unsigned char *dummy,
              */
             if (preempt != 0 && timercmp(&sc_tv, &ch_tv, <)) {
                 carp_master_down(&sc);
-                logfile(LOG_WARNING, _("Putting MASTER down - preemption"));
+                logfile(LOG_WARNING, "Putting MASTER down - preemption");
                 break;
             }
 
@@ -612,7 +632,7 @@ static void packethandler(unsigned char *dummy,
             if (timercmp(&sc_tv, &ch_tv, <)) {
                 carp_master_down(&sc);
                 logfile(LOG_WARNING,
-                        _("Putting MASTER DOWN (going to time out)"));
+                        "Putting MASTER DOWN (going to time out)");
                 break;
             }
 
@@ -691,7 +711,7 @@ int docarp(void)
         const size_t passlen = strlen(pass) + (size_t) 1U;
 
         if (passlen > sizeof sc.sc_key) {
-            logfile(LOG_ERR, _("Password too long"));
+            logfile(LOG_ERR, "Password too long");
             return -1;
         }
         memcpy(sc.sc_key, pass, passlen);
@@ -704,24 +724,24 @@ int docarp(void)
     carp_hmac_prepare(&sc);
 
     if (fill_mac_address() != 0) {
-        logfile(LOG_ERR, _("Unable to find MAC address of [%s]"),
+        logfile(LOG_ERR, "Unable to find MAC address of [%s]",
                 interface == NULL ? "-" : interface);
         return -1;
     }
-    logfile(LOG_INFO, _("Local advertised ethernet address is "
-                        "[%02x:%02x:%02x:%02x:%02x:%02x]"),
+    logfile(LOG_INFO, "Local advertised ethernet address is "
+                        "[%02x:%02x:%02x:%02x:%02x:%02x]",
             (unsigned int) hwaddr[0], (unsigned int) hwaddr[1],
             (unsigned int) hwaddr[2], (unsigned int) hwaddr[3],
             (unsigned int) hwaddr[4], (unsigned int) hwaddr[5]);
     if ((dev_desc = pcap_open_live(interface, ETHERNET_MTU, 0,
                                    CAPTURE_TIMEOUT, errbuf)) == NULL) {
-        logfile(LOG_ERR, _("Unable to open interface [%s]: %s"),
+        logfile(LOG_ERR, "Unable to open interface [%s]: %s",
                 interface == NULL ? "-" : interface, errbuf);
         return -1;
     }
     if (pcap_compile(dev_desc, &bpfp, build_bpf_rule(),
                      1, (bpf_u_int32) 0) != 0) {
-        logfile(LOG_ERR, _("Unable to compile pcap rule: %s [%s]"),
+        logfile(LOG_ERR, "Unable to compile pcap rule: %s [%s]",
                 errbuf, interface == NULL ? "-" : interface);
         return -1;
     }
@@ -779,13 +799,13 @@ int docarp(void)
     }
 
     if (gettimeofday(&now, NULL) != 0) {
-        logfile(LOG_WARNING, _("initializing now to gettimeofday() failed: %s"),
+        logfile(LOG_WARNING, "initializing now to gettimeofday() failed: %s",
                 strerror(errno));
     }
     carp_setrun(&sc, 0);
 
     if ((fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
-        logfile(LOG_ERR, _("Error opening socket for interface [%s]: %s"),
+        logfile(LOG_ERR, "Error opening socket for interface [%s]: %s",
                 interface == NULL ? "-" : interface, strerror(errno));
         return -1;
     }
@@ -803,7 +823,7 @@ int docarp(void)
     }
 #ifdef SIOCGIFFLAGS
     if (strlen(interface) >= sizeof iface.ifr_name) {
-        logfile(LOG_ERR, _("Interface name too long"));
+        logfile(LOG_ERR, "Interface name too long");
         return -1;
     }
     strncpy(iface.ifr_name, interface, sizeof iface.ifr_name);
@@ -868,7 +888,7 @@ int docarp(void)
             poll_sleep_time = sc.sc_advbase * 1000 + tmpskew;
         } else {
             if (gettimeofday(&now, NULL) != 0) {
-                logfile(LOG_WARNING, _("gettimeofday() failed: %s"),
+                logfile(LOG_WARNING, "gettimeofday() failed: %s",
                         strerror(errno));
                 continue;
             }
@@ -881,10 +901,10 @@ int docarp(void)
             if (errno == EINTR) {
                continue;
             }
-            logfile(LOG_ERR, _("exiting: poll() error: %s"), strerror(errno));
+            logfile(LOG_ERR, "exiting: poll() error: %s"), strerror(errno);
         }
         if ((pfds[0].revents & (POLLERR | POLLHUP)) != 0) {
-            logfile(LOG_ERR, _("exiting: pfds[0].revents = %d"),
+            logfile(LOG_ERR, "exiting: pfds[0].revents = %d",
                     pfds[0].revents);
             if ((sc.sc_state != BACKUP) && (shutdown_at_exit != 0)) {
                 (void) spawn_handler(dev_desc_fd, downscript);
@@ -892,7 +912,7 @@ int docarp(void)
             break;
         }
         if (gettimeofday(&now, NULL) != 0) {
-            logfile(LOG_WARNING, _("gettimeofday() failed: %s"),
+            logfile(LOG_WARNING, "gettimeofday() failed: %s",
                     strerror(errno));
             continue;
         }

@@ -32,11 +32,10 @@ On Ubuntu: apt-get install libtool autoconf gettext libpcap0.8 libpcap0.8-dev li
 libtoolize
 gettextize -f
 
-cp po/Makevars.template po/Makevars
 autoreconf -i
 
 ./configure
-make install-strip
+cargo build
 
 For details, have a look at the INSTALL file.
 

@@ -23,8 +23,6 @@ AC_PROG_LIBTOOL
 
 AC_ISC_POSIX
 
-AM_GNU_GETTEXT([external])
-
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
@@ -279,9 +277,7 @@ CPPFLAGS="$CPPFLAGS -DCONFDIR=\\\"$sysconfdir\\\""
 
 dnl Output
 
-AC_CONFIG_FILES(Makefile src/Makefile examples/Makefile
-                examples/linux/Makefile examples/bsd/Makefile
-                po/Makefile.in m4/Makefile )
+AC_CONFIG_FILES(Makefile src/Makefile)
 
 AC_OUTPUT
 

@@ -1,3 +1,22 @@
+/*
+ * Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
+ *
+ * This file is part of carp-rs.
+ *
+ * carp-rs is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * carp-rs is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <config.h>
 #include "ucarp.h"
 #include "fillmac.h"
@@ -39,7 +58,7 @@ int fill_mac_address(void)
     int s;
 
     if ((s = socket(HWINFO_DOMAIN, HWINFO_TYPE, 0)) == -1) {
-        logfile(LOG_ERR, _("Unable to open raw device: [%s]"),
+        logfile(LOG_ERR, "Unable to open raw device: [%s]",
                 strerror(errno));
         return -1;
     }
@@ -48,13 +67,13 @@ int fill_mac_address(void)
         struct ifreq ifr;
 
         if (strlen(interface) >= sizeof ifr.ifr_name) {
-            logfile(LOG_ERR, _("Interface name too long"));
+            logfile(LOG_ERR, "Interface name too long");
             return -1;
         }
         strncpy(ifr.ifr_name, interface, sizeof ifr.ifr_name);
         if (ioctl(s, SIOCGIFHWADDR, &ifr) != 0) {
             logfile(LOG_ERR,
-                    _("Unable to get hardware info about an interface: %s"),
+                    "Unable to get hardware info about an interface: %s",
                     strerror(errno));
             (void) close(s);
             return -1;
@@ -64,7 +83,7 @@ int fill_mac_address(void)
         case ARPHRD_IEEE802:
             break;
         default:
-            logfile(LOG_ERR, _("Unknown hardware type [%u]"),
+            logfile(LOG_ERR, "Unknown hardware type [%u]",
                     (unsigned int) ifr.ifr_hwaddr.sa_family);
         }
         memcpy(hwaddr, &ifr.ifr_hwaddr.sa_data, sizeof hwaddr);
@@ -77,7 +96,7 @@ int fill_mac_address(void)
         struct ether_addr *ea;
 
         if (getifaddrs(&ifas) != 0) {
-            logfile(LOG_ERR, _("Unable to get interface address: %s"),
+            logfile(LOG_ERR, "Unable to get interface address: %s",
                     strerror(errno));
             return -1;
         }
@@ -89,7 +108,7 @@ int fill_mac_address(void)
                 if (sadl == NULL || sadl->sdl_type != IFT_ETHER ||
                     sadl->sdl_alen <= 0) {
                     logfile(LOG_ERR,
-                            _("Invalid media / hardware address for [%s]"),
+                            "Invalid media / hardware address for [%s]",
                             interface);
                     return -1;
                 }
@@ -113,11 +132,11 @@ int fill_mac_address(void)
         lifn.lifn_flags = 0;
         lifn.lifn_family = AF_INET;
         if (ioctl(s, SIOCGLIFNUM, &lifn) < 0) {
-            logfile(LOG_ERR, _("ioctl SIOCGLIFNUM error"));
+            logfile(LOG_ERR, "ioctl SIOCGLIFNUM error");
             return -1;
         }
         if (lifn.lifn_count <= 0) {
-            logfile(LOG_ERR, _("No interface found"));
+            logfile(LOG_ERR, "No interface found");
             return -1;
         }
         lifc.lifc_family = lifn.lifn_family;
@@ -125,14 +144,14 @@ int fill_mac_address(void)
         lifrspace = ALLOCA(lifc.lifc_len);
         lifc.lifc_buf = (caddr_t) lifrspace;
         if (ioctl(s, SIOCGLIFCONF, &lifc) < 0) {
-            logfile(LOG_ERR, _("ioctl SIOCGLIFCONF error"));
+            logfile(LOG_ERR, "ioctl SIOCGLIFCONF error");
             ALLOCA_FREE(lifrspace);
             return -1;
         }
         lifr = lifc.lifc_req;
         for(;;) {
             if (lifn.lifn_count <= 0) {
-                logfile(LOG_ERR, _("Interface [%s] not found"), interface);
+                logfile(LOG_ERR, "Interface [%s] not found"), interface;
                 ALLOCA_FREE(lifrspace);
                 return -1;
             }
@@ -145,7 +164,7 @@ int fill_mac_address(void)
         memcpy(&arpreq.arp_pa, &lifr->lifr_addr, sizeof arpreq.arp_pa);
         ALLOCA_FREE(lifrspace);
         if (ioctl(s, SIOCGARP, &arpreq) != 0) {
-            logfile(LOG_ERR, _("Unable to get hardware info about [%s]"),
+            logfile(LOG_ERR, "Unable to get hardware info about [%s]",
                     interface);
             return -1;
         }
