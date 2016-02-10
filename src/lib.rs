@@ -16,19 +16,172 @@
 //! You should have received a copy of the GNU Lesser General Public License
 //! along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
 
-fn carp() {
+// This should become stable in 1.7
+#![feature(ip_addr)]
+
+use std::net::IpAddr;
+use std::os::raw::{c_char, c_uchar, c_uint};
+use std::str::FromStr;
+
+///
+/// Configuration options for CARP
+///
+#[derive(Debug)]
+pub struct Config {
+    /// Virtual shared IP address
+    ///
+    /// This is the value that will be dynamically answered by one alive host.
+    vaddr: IpAddr,
+
+    /// Real IP address of the host
+    srcip: IpAddr,
+
+    /// Virtual IP identifier. Must be between 1-255
+    ///
+    /// The virtual IP identifier field only is only eight bits, providing up
+    /// to 255 different virtual IPs on the same multicast group IP. For larger
+    /// deployments, and more flexibility in allocation, ucarp can optionally
+    /// use a different multicast IP.
+    vhid: u8,
+
+    /// Password used to encrypt CARP messages
+    ///
+    /// This password will never be sent in plaintext over the network.
+    password: String,
+
+    /// Advertisement base (in seconds)
+    advbase: u8,
+
+    /// Advertisement skew. Must be between 1-255
+    advskew: u8,
+
+    /// Ratio to consider host as dead. Default is 3.
+    ///
+    /// This ratio changes how long a backup server will wait for an
+    /// unresponsive primary before considering it as dead, and becoming the
+    /// new primary. In the original protocol, the ratio is 3.
+    dead_ratio: u32,
+
+    /// Bind interface.
+    ///
+    /// Defaults to using `pcap_lookupdev` to find the default device on which
+    /// to capture.
+    interface: Option<String>,
+
+    /// Multicast group IP address (default 224.0.0.18).
+    ///
+    /// This is how servers will send and receive CARP messages.  By default,
+    /// carp will send/listen on 224.0.0.18, which is the assigned IP for VRRP.
+    /// Consult the [IPv4 Multicast Address Space Registry](http://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml)
+    /// before deciding to use a different one.
+    ///
+    /// Other useful links:
+    /// http://tools.ietf.org/html/rfc5771
+    /// http://tools.ietf.org/html/rfc2365
+    ///
+    /// Addresses within 239.192.0.0/14 should be most appropriate.
+    ///
+    /// If carp isn't working on a different IP, check that your networking gear is
+    /// set up to handle it. tcpdump on each host can be handy for diagnosis:
+    ///
+    /// tcpdump -n 'net 224.0.0.0/4'
+    mcast: IpAddr,
+
+    /// Become master as soon as possible
+    preempt: bool,
+
+    /// Do not run `onShutdown` callback at start if in backup state
+    neutral: bool,
+
+    /// Call `onShutdown` callback on exit if not in backup state
+    shutdown_at_exit: bool,
+
+    /// Ignore interface state (down, no carrier).
+    ///
+    /// This option tells CARP to ignore unplugged network cable. It is useful
+    /// when you connect ucarp nodes with a crossover patch cord (not via a hub
+    /// or a switch). Without this option the node in MASTER state will switch
+    /// to BACKUP state when the other node is powered down, because network
+    /// interface shows that cable is unplugged (NO-CARRIER). Some network interface
+    /// drivers don't support NO-CARRIER feature, and this option is not needed for
+    /// these network cards. The card that definitely supports this feature is
+    /// Realtek 8139.
+    ignoreifstate: bool,
+
+    /// Use broadcast (instead of multicast) advertisements
+    no_mcast: bool,
+
+    //facility: CString, // type?
+}
+
+impl Config {
+    pub fn new<S>(vaddr: IpAddr, srcip: IpAddr, password: S) -> Config where S: Into<String> {
+        Config {
+            vaddr: vaddr,
+            srcip: srcip,
+            vhid: 1,
+            password: password.into(),
+            advbase: 1,
+            advskew: 1,
+            dead_ratio: 3,
+            interface: None,
+            mcast: FromStr::from_str("224.0.0.18").unwrap(),
+            preempt: false,
+            neutral: false,
+            shutdown_at_exit: false,
+            ignoreifstate: false,
+            no_mcast: false,
+        }
+    }
+
+    pub fn set_password<S>(&mut self, password: S) where S: Into<String> {
+        self.password = password.into();
+    }
+}
+
+pub fn carp(config: Config) {
     #[link(name="pcap")]
     extern {
-        fn libmain(argc: i32, argv: *const *const u8) -> i32;
+        fn set_vaddr(vaddr: *const c_uchar) -> i32;
+        fn set_mcast(mcast: *const c_uchar) -> i32;
+        fn set_srcip(srcip: *const c_uchar) -> i32;
+        fn set_vhid(vhid: c_uchar) -> i32;
+        fn set_interface(interface: *const c_uchar) -> i32;
+        fn set_password(password: *const c_uchar) -> i32;
+        fn set_advbase(advbase: c_uchar);
+        fn set_advskew(advskew: c_uchar);
+        fn set_dead_ratio(dead_ratio: c_uint);
+        fn set_neutral(neutral: c_char);
+        fn set_shutdown_at_exit(shutdown_at_exit: c_char);
+        fn set_ignoreifstate(ignoreifstate: c_char);
+        fn set_no_mcast(no_mcast: c_char);
+        fn libmain() -> i32;
     }
 
-    let argv = &[
-        "test".as_ptr(),
-        0 as *const u8
-    ];
+    let vaddr = format!("{}", config.vaddr);
+    let srcip = format!("{}", config.srcip);
+    let mcast = format!("{}", config.mcast);
 
+    // TODO check return types when setting ptr values
     unsafe {
-        let _ = libmain(1, argv.as_ptr());
-    }
+        set_vaddr(vaddr.as_ptr());
+        set_srcip(srcip.as_ptr());
+        set_mcast(mcast.as_ptr());
+        set_vhid(config.vhid);
 
+        let _ = match config.interface {
+            Some(interface) => set_interface(interface.as_ptr()),
+            None => set_interface(0 as *const c_uchar),
+        };
+
+        set_password(config.password.as_ptr());
+        set_advbase(config.advbase);
+        set_advskew(config.advskew);
+        set_dead_ratio(config.dead_ratio);
+        set_neutral(config.neutral as i8);
+        set_shutdown_at_exit(config.shutdown_at_exit as i8);
+        set_ignoreifstate(config.ignoreifstate as i8);
+        set_no_mcast(config.no_mcast as i8);
+        let _ = libmain();
+    }
 }

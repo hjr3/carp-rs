@@ -2,10 +2,8 @@ extern crate gcc;
 
 fn main() {
     gcc::Config::new()
-        .file("src/bsd-getopt_long.c")
         .file("src/carp.c")
         .file("src/crypto-sha1.c")
-        .file("src/daemonize.c")
         .file("src/fakesnprintf.c")
         .file("src/fillmac.c")
         .file("src/garp.c")
