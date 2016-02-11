@@ -121,9 +121,14 @@ void set_advskew(unsigned char _advskew)
     advskew = _advskew;
 }
 
-void set_dead_ratio(unsigned int _dead_ratio)
+int set_dead_ratio(unsigned int _dead_ratio)
 {
+    if (_dead_ratio <= 0U) {
+        logfile(LOG_ERR, "Dead ratio can't be zero");
+        return 1;
+    }
     dead_ratio = _dead_ratio;
+    return 0;
 }
 
 void set_preempt(signed char _preempt)
@@ -207,10 +212,6 @@ int libmain(struct Config *config)
     }
     if (down_callback == NULL) {
         logfile(LOG_WARNING, "Warning: no callback registered when going down");
-    }
-    if (dead_ratio <= 0U) {
-        logfile(LOG_ERR, "Dead ratio can't be zero");
-        return 1;
     }
     init_rand();
     if (docarp() != 0) {
