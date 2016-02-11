@@ -38,8 +38,6 @@ libcarp_a_SOURCES = \
 	fillmac.h \
 	garp.c \
 	garp.h \
-	spawn.c \
-	spawn.h \
 	fakesnprintf.c \
 	fakesnprintf.h \
 	mysnprintf.c \

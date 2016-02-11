@@ -11,5 +11,17 @@ fn main() {
 
     config.set_password("thisisatest");
 
+    carp::on_up(my_up_callback);
+    carp::on_down(my_down_callback);
     carp::carp(config);
+}
+
+fn my_up_callback()
+{
+    println!("In my_up_callback()");
+}
+
+fn my_down_callback()
+{
+    println!("In my_down_callback()");
 }

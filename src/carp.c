@@ -60,7 +60,6 @@
 #include "ip_carp.h"
 #include "fillmac.h"
 #include "garp.h"
-#include "spawn.h"
 #include "log.h"
 #include "carp_p.h"
 
@@ -80,12 +79,12 @@ static void carp_set_state(struct carp_softc *sc, int state)
     case BACKUP:
         logfile(LOG_WARNING, "Switching to state: BACKUP");
         if ((sc->sc_state != INIT) || (neutral != 1)) {
-            (void) spawn_handler(dev_desc_fd, downscript);
+            trigger_down_callback();
         }
         break;
     case MASTER:
         logfile(LOG_WARNING, "Switching to state: MASTER");
-        (void) spawn_handler(dev_desc_fd, upscript);
+        trigger_up_callback();
         gratuitous_arp(dev_desc_fd);
         break;
     default:
@@ -876,7 +875,7 @@ int docarp(void)
                 logfile(LOG_DEBUG, "sighandler_exit(): Calling [%s] and exiting",
                         downscript);
                 if (sc.sc_state != BACKUP) {
-                    (void) spawn_handler(dev_desc_fd, downscript);
+                    trigger_down_callback();
                 }
                 _exit(EXIT_SUCCESS);
                 break;
@@ -907,7 +906,7 @@ int docarp(void)
             logfile(LOG_ERR, "exiting: pfds[0].revents = %d",
                     pfds[0].revents);
             if ((sc.sc_state != BACKUP) && (shutdown_at_exit != 0)) {
-                (void) spawn_handler(dev_desc_fd, downscript);
+                trigger_down_callback();
             }
             break;
         }

@@ -33,4 +33,7 @@ GLOBAL(int syslog_facility, DEFAULT_FACILITY);
 GLOBAL0(char *vaddr_arg);
 GLOBAL0(char *xparam);
 GLOBAL0(sig_atomic_t received_signal);
+
+GLOBAL0(rust_callback up_callback);
+GLOBAL0(rust_callback down_callback);
 #endif
