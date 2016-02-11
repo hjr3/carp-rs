@@ -139,6 +139,88 @@ impl Config {
     }
 }
 
+// Private globals. I do not love this, but it currently is the best way I
+// have found to allow a user to register callback functions that will be
+// triggerd by the C carp code.
+static mut registered_up_callback: Option<fn()> = None;
+static mut registered_down_callback: Option<fn()> = None;
+
+///
+/// Register a function to call when server is in a state of _up_
+///
+/// The callback is executed in a separate thread.
+///
+/// This must be a normal function. A closure cannot be used as this function
+/// is being called from the C code and the environment is not guranteed.
+///
+/// Example:
+///
+/// ```rust
+/// fn my_up_callback() {
+///     println!("In my_up_callback()");
+/// }
+///
+/// carp::on_up(my_up_callback);
+/// ```
+///
+pub fn on_up(cb: fn()) {
+    unsafe {
+        registered_up_callback = Some(cb);
+    }
+}
+
+///
+/// Register a function to call when server is in a state of _down_
+///
+/// The callback is executed in a separate thread.
+///
+/// This must be a normal function. A closure cannot be used as this function
+/// is being called from the C code and the environment is not guranteed.
+///
+/// Example:
+///
+/// ```rust
+/// fn my_down_callback() {
+///     println!("In my_down_callback()");
+/// }
+///
+/// carp::on_down(my_down_callback);
+/// ```
+///
+pub fn on_down(cb: fn()) {
+    unsafe {
+        registered_down_callback = Some(cb);
+    }
+}
+
+///
+/// Called by carp C code when state changes to _up_
+///
+extern "C" fn up_callback() {
+    let func = unsafe {
+        match registered_up_callback {
+            Some(func) => func,
+            None => return
+        }
+    };
+
+    std::thread::spawn(move || func());
+}
+
+///
+/// Called by carp C code when state changes to _down_
+///
+extern "C" fn down_callback() {
+    let func = unsafe {
+        match registered_down_callback {
+            Some(func) => func,
+            None => return
+        }
+    };
+
+    std::thread::spawn(move || func());
+}
+
 pub fn carp(config: Config) {
     #[link(name="pcap")]
     extern {
@@ -155,6 +237,10 @@ pub fn carp(config: Config) {
         fn set_shutdown_at_exit(shutdown_at_exit: c_char);
         fn set_ignoreifstate(ignoreifstate: c_char);
         fn set_no_mcast(no_mcast: c_char);
+
+        fn register_up_callback(cb: extern fn());
+        fn register_down_callback(cb: extern fn());
+
         fn libmain() -> i32;
     }
 
@@ -182,6 +268,15 @@ pub fn carp(config: Config) {
         set_shutdown_at_exit(config.shutdown_at_exit as i8);
         set_ignoreifstate(config.ignoreifstate as i8);
         set_no_mcast(config.no_mcast as i8);
+
+        if registered_up_callback.is_some() {
+            register_up_callback(up_callback);
+        }
+
+        if registered_down_callback.is_some() {
+            register_down_callback(down_callback);
+        }
+
         let _ = libmain();
     }
 }

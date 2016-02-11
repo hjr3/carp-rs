@@ -9,7 +9,6 @@ fn main() {
         .file("src/garp.c")
         .file("src/log.c")
         .file("src/mysnprintf.c")
-        .file("src/spawn.c")
         .file("src/ucarp.c")
         .include("./")
         .compile("libcarp.a");

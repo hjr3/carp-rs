@@ -151,6 +151,30 @@ void set_no_mcast(signed char _no_mcast)
     no_mcast = _no_mcast;
 }
 
+void register_up_callback(rust_callback cb)
+{
+    up_callback = cb;
+}
+
+void register_down_callback(rust_callback cb)
+{
+    down_callback = cb;
+}
+
+void trigger_up_callback()
+{
+    if (up_callback) {
+        up_callback();
+    }
+}
+
+void trigger_down_callback()
+{
+    if (down_callback) {
+        down_callback();
+    }
+}
+
 int libmain(struct Config *config)
 {
 #ifndef SAVE_DESCRIPTORS
@@ -178,11 +202,11 @@ int libmain(struct Config *config)
         logfile(LOG_ERR, "You must supply a virtual host address");
         return 1;
     }
-    if (upscript == NULL) {
-        logfile(LOG_WARNING, "Warning: no script called when going up");
+    if (up_callback == NULL) {
+        logfile(LOG_WARNING, "Warning: no callback registered when going up");
     }
-    if (downscript == NULL) {
-        logfile(LOG_WARNING, "Warning: no script called when going down");
+    if (down_callback == NULL) {
+        logfile(LOG_WARNING, "Warning: no callback registered when going down");
     }
     if (dead_ratio <= 0U) {
         logfile(LOG_ERR, "Dead ratio can't be zero");

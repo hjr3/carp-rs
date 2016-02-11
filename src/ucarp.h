@@ -233,6 +233,8 @@ struct carp_softc {
 
 int docarp(void);
 
+typedef void (*rust_callback)();
+
 #include "globals.h"
 
 #endif
