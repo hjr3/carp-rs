@@ -19,10 +19,17 @@
 // This should become stable in 1.7
 #![feature(ip_addr)]
 
+extern crate libc;
+
+#[cfg(unix)]
+extern crate nix;
+
 use std::net::IpAddr;
 use std::os::raw::{c_char, c_uchar, c_uint};
 use std::str::FromStr;
 use std::fmt;
+
+mod mac;
 
 ///
 /// Configuration options for CARP
