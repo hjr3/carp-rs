@@ -13,7 +13,8 @@ fn main() {
 
     carp::on_up(my_up_callback);
     carp::on_down(my_down_callback);
-    carp::carp(config);
+
+    carp::carp(config).unwrap();
 }
 
 fn my_up_callback()

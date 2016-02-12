@@ -22,6 +22,7 @@
 use std::net::IpAddr;
 use std::os::raw::{c_char, c_uchar, c_uint};
 use std::str::FromStr;
+use std::fmt;
 
 ///
 /// Configuration options for CARP
@@ -221,7 +222,38 @@ extern "C" fn down_callback() {
     std::thread::spawn(move || func());
 }
 
-pub fn carp(config: Config) {
+#[derive(Debug)]
+pub enum CarpError {
+    InvalidVirtualIp,
+    InvalidMulticastIp,
+    InvalidSourceIp,
+    InvalidVirtualHardwareId,
+    InvalidNetworkInterface,
+    InvalidPassword,
+    InvalidDeadRatio,
+    InvalidUnknown,
+    CarpFailure,
+}
+
+impl fmt::Display for CarpError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        use CarpError::*;
+
+        match *self {
+            InvalidVirtualIp => write!(fmt, "InvalidVirtualIp"),
+            InvalidMulticastIp => write!(fmt, "InvalidMulticastIp"),
+            InvalidSourceIp => write!(fmt, "InvalidSourceIp"),
+            InvalidVirtualHardwareId => write!(fmt, "InvalidVirtualHardwareId"),
+            InvalidNetworkInterface => write!(fmt, "InvalidNetworkInterface"),
+            InvalidPassword => write!(fmt, "InvalidPassword"),
+            InvalidDeadRatio => write!(fmt, "InvalidDeadRatio"),
+            InvalidUnknown => write!(fmt, "InvalidUnknown"),
+            CarpFailure => write!(fmt, "CarpFailure"),
+        }
+    }
+}
+
+pub fn carp(config: Config) -> Result<(), CarpError> {
     #[link(name="pcap")]
     extern {
         fn set_vaddr(vaddr: *const c_uchar) -> i32;
@@ -232,7 +264,7 @@ pub fn carp(config: Config) {
         fn set_password(password: *const c_uchar) -> i32;
         fn set_advbase(advbase: c_uchar);
         fn set_advskew(advskew: c_uchar);
-        fn set_dead_ratio(dead_ratio: c_uint);
+        fn set_dead_ratio(dead_ratio: c_uint) -> i32;
         fn set_neutral(neutral: c_char);
         fn set_shutdown_at_exit(shutdown_at_exit: c_char);
         fn set_ignoreifstate(ignoreifstate: c_char);
@@ -244,26 +276,45 @@ pub fn carp(config: Config) {
         fn libmain() -> i32;
     }
 
+    // The `IpAddr` type has no other way of converting back into a string
     let vaddr = format!("{}", config.vaddr);
     let srcip = format!("{}", config.srcip);
     let mcast = format!("{}", config.mcast);
 
-    // TODO check return types when setting ptr values
     unsafe {
-        set_vaddr(vaddr.as_ptr());
-        set_srcip(srcip.as_ptr());
-        set_mcast(mcast.as_ptr());
-        set_vhid(config.vhid);
+        if set_vaddr(vaddr.as_ptr()) != 0 {
+            return Err(CarpError::InvalidVirtualIp);
+        }
 
-        let _ = match config.interface {
+        if set_srcip(srcip.as_ptr()) != 0 {
+            return Err(CarpError::InvalidSourceIp);
+        }
+
+        if set_mcast(mcast.as_ptr()) != 0 {
+            return Err(CarpError::InvalidMulticastIp);
+        }
+
+        if set_vhid(config.vhid) != 0 {
+            return Err(CarpError::InvalidVirtualHardwareId);
+        }
+
+        if match config.interface {
             Some(interface) => set_interface(interface.as_ptr()),
             None => set_interface(0 as *const c_uchar),
-        };
+        } != 0 {
+            return Err(CarpError::InvalidNetworkInterface);
+        }
 
-        set_password(config.password.as_ptr());
+        if set_password(config.password.as_ptr()) != 0 {
+            return Err(CarpError::InvalidPassword);
+        }
+
+        if set_dead_ratio(config.dead_ratio) != 0 {
+            return Err(CarpError::InvalidDeadRatio);
+        }
+
         set_advbase(config.advbase);
         set_advskew(config.advskew);
-        set_dead_ratio(config.dead_ratio);
         set_neutral(config.neutral as i8);
         set_shutdown_at_exit(config.shutdown_at_exit as i8);
         set_ignoreifstate(config.ignoreifstate as i8);
@@ -277,6 +328,10 @@ pub fn carp(config: Config) {
             register_down_callback(down_callback);
         }
 
-        let _ = libmain();
+        match libmain() {
+            0 => Ok(()),
+            2 => Err(CarpError::CarpFailure),
+            _ => Err(CarpError::InvalidUnknown), // covers return 1 case too
+        }
     }
 }
