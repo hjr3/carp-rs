@@ -19,3 +19,9 @@ before_script:
   - libtoolize
   - autoreconf -i
   - ./configure
+# See https://github.com/travis-ci/travis-ci/issues/1350
+  - sudo sed -i -e 's/^Defaults\tsecure_path.*$//' /etc/sudoers
+
+script:
+  - cargo build --verbose
+  - sudo cargo test --verbose
