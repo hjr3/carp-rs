@@ -66,6 +66,8 @@ int fill_mac_address(void)
     {
         struct ifreq ifr;
 
+        logfile(LOG_ERR, "ifreq = : %d", sizeof ifr);
+
         if (strlen(interface) >= sizeof ifr.ifr_name) {
             logfile(LOG_ERR, "Interface name too long");
             return -1;

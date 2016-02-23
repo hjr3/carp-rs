@@ -1,20 +1,19 @@
-//!
-//! Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
-//!
-//! This file is part of carp-rs.
-//!
-//! carp-rs is free software: you can redistribute it and/or modify
-//! it under the terms of the GNU Lesser General Public License as published by
-//! the Free Software Foundation, either version 3 of the License, or
-//! (at your option) any later version.
-//!
-//! carp-rs is distributed in the hope that it will be useful,
-//! but WITHOUT ANY WARRANTY; without even the implied warranty of
-//! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//! GNU Lesser General Public License for more details.
-//!
-//! You should have received a copy of the GNU Lesser General Public License
-//! along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
+//
+// This file is part of carp-rs.
+//
+// carp-rs is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// carp-rs is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
 
 // This should become stable in 1.7
 #![feature(ip_addr)]
@@ -30,10 +29,9 @@ use std::str::FromStr;
 use std::fmt;
 
 mod mac;
+mod arp;
 
-///
 /// Configuration options for CARP
-///
 #[derive(Debug)]
 pub struct Config {
     /// Virtual shared IP address
@@ -118,12 +116,14 @@ pub struct Config {
 
     /// Use broadcast (instead of multicast) advertisements
     no_mcast: bool,
-
-    //facility: CString, // type?
 }
 
+    // facility: CString, // type?
+
 impl Config {
-    pub fn new<S>(vaddr: IpAddr, srcip: IpAddr, password: S) -> Config where S: Into<String> {
+    pub fn new<S>(vaddr: IpAddr, srcip: IpAddr, password: S) -> Config
+        where S: Into<String>
+    {
         Config {
             vaddr: vaddr,
             srcip: srcip,
@@ -142,7 +142,9 @@ impl Config {
         }
     }
 
-    pub fn set_password<S>(&mut self, password: S) where S: Into<String> {
+    pub fn set_password<S>(&mut self, password: S)
+        where S: Into<String>
+    {
         self.password = password.into();
     }
 }
@@ -153,7 +155,6 @@ impl Config {
 static mut registered_up_callback: Option<fn()> = None;
 static mut registered_down_callback: Option<fn()> = None;
 
-///
 /// Register a function to call when server is in a state of _up_
 ///
 /// The callback is executed in a separate thread.
@@ -170,14 +171,12 @@ static mut registered_down_callback: Option<fn()> = None;
 ///
 /// carp::on_up(my_up_callback);
 /// ```
-///
 pub fn on_up(cb: fn()) {
     unsafe {
         registered_up_callback = Some(cb);
     }
 }
 
-///
 /// Register a function to call when server is in a state of _down_
 ///
 /// The callback is executed in a separate thread.
@@ -194,35 +193,30 @@ pub fn on_up(cb: fn()) {
 ///
 /// carp::on_down(my_down_callback);
 /// ```
-///
 pub fn on_down(cb: fn()) {
     unsafe {
         registered_down_callback = Some(cb);
     }
 }
 
-///
 /// Called by carp C code when state changes to _up_
-///
 extern "C" fn up_callback() {
     let func = unsafe {
         match registered_up_callback {
             Some(func) => func,
-            None => return
+            None => return,
         }
     };
 
     std::thread::spawn(move || func());
 }
 
-///
 /// Called by carp C code when state changes to _down_
-///
 extern "C" fn down_callback() {
     let func = unsafe {
         match registered_down_callback {
             Some(func) => func,
-            None => return
+            None => return,
         }
     };
 
@@ -262,7 +256,7 @@ impl fmt::Display for CarpError {
 
 pub fn carp(config: Config) -> Result<(), CarpError> {
     #[link(name="pcap")]
-    extern {
+    extern "C" {
         fn set_vaddr(vaddr: *const c_uchar) -> i32;
         fn set_mcast(mcast: *const c_uchar) -> i32;
         fn set_srcip(srcip: *const c_uchar) -> i32;
@@ -277,8 +271,8 @@ pub fn carp(config: Config) -> Result<(), CarpError> {
         fn set_ignoreifstate(ignoreifstate: c_char);
         fn set_no_mcast(no_mcast: c_char);
 
-        fn register_up_callback(cb: extern fn());
-        fn register_down_callback(cb: extern fn());
+        fn register_up_callback(cb: extern "C" fn());
+        fn register_down_callback(cb: extern "C" fn());
 
         fn libmain() -> i32;
     }

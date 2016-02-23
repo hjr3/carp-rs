@@ -2,6 +2,7 @@ extern crate gcc;
 
 fn main() {
     gcc::Config::new()
+        .flag("-g")
         .file("src/carp.c")
         .file("src/crypto-sha1.c")
         .file("src/fakesnprintf.c")
