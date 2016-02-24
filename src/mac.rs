@@ -109,7 +109,14 @@ pub struct HwAddr {
 /// Representation of a MAC address
 impl HwAddr {
     pub fn new(a: u8, b: u8, c: u8, d: u8, e: u8, f: u8) -> HwAddr {
-        HwAddr { a: a, b: b, c: c, d: d, e: e, f: f }
+        HwAddr {
+            a: a,
+            b: b,
+            c: c,
+            d: d,
+            e: e,
+            f: f,
+        }
     }
 
     /// Returns the six eight-bit integers that make up this address.
@@ -175,7 +182,10 @@ impl HwIf {
     }
 
     fn ioctl(&self, if_name: &str, ident: c_ulong) -> io::Result<IfReq> {
-        let fd = try!(socket(AddressFamily::Inet, SockType::Datagram, SockFlag::empty()));
+        let fd = try!(socket(AddressFamily::Inet,
+                             SockType::Datagram,
+                             SockFlag::empty(),
+                             0));
 
         let if_req = try!(IfReq::with_if_name(if_name));
         let mut req: Box<IfReq> = Box::new(if_req);

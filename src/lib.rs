@@ -118,7 +118,7 @@ pub struct Config {
     no_mcast: bool,
 }
 
-    // facility: CString, // type?
+// facility: CString, // type?
 
 impl Config {
     pub fn new<S>(vaddr: IpAddr, srcip: IpAddr, password: S) -> Config
