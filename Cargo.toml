@@ -7,7 +7,7 @@ build = "build.rs"
 
 [dependencies]
 libc = "0.2.7"
-nix = "0.4.2"
+nix = { git = "https://github.com/nix-rust/nix", rev = "2bffa28" }
 
 [build-dependencies]
 gcc = "0.3"

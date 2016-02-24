@@ -4,7 +4,7 @@ version = "0.1.0"
 dependencies = [
  "gcc 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "nix 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nix 0.5.0-pre (git+https://github.com/nix-rust/nix?rev=2bffa28)",
 ]
 
 [[package]]
@@ -32,21 +32,16 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "libc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "nix"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.5.0-pre"
+source = "git+https://github.com/nix-rust/nix?rev=2bffa28#2bffa28cd9eb440b32cffaa8102dd249255cf0dd"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -1,8 +1,8 @@
 use std::io::{self, Error, ErrorKind};
 use std::mem::size_of;
 use std::net::Ipv4Addr;
-use libc::{socket, sendto, sockaddr, sockaddr_ll, AF_PACKET, SOCK_RAW, uint8_t,
-           uint16_t, c_void, c_int};
+use libc::{sockaddr, sockaddr_ll, AF_PACKET, uint8_t, uint16_t, c_void, c_int};
+use nix::sys::socket::{socket, SockType, SockFlag, AddressFamily};
 use mac::{HwIf, HwAddr};
 
 const ETH_ALEN: usize = 6;
@@ -18,11 +18,9 @@ enum ArpOp {
     Reply = 2,
 }
 
-///
 /// An Arp packet
 ///
 /// Follows Ethernet Type II Frame structure
-///
 #[derive(Debug)]
 #[repr(C, packed)]
 struct ArpPacket {
@@ -127,8 +125,10 @@ pub fn gratuitous_arp(if_name: &str, ip: Ipv4Addr) -> io::Result<()> {
     let mac = try!(hw_if.hwaddr());
     let idx = try!(hw_if.index());
 
-    // TODO build safe interface
-    let fd = unsafe { socket(AF_PACKET, SOCK_RAW, ETH_P_ARP.to_be()) };
+    let fd = try!(socket(AddressFamily::Packet,
+                         SockType::Raw,
+                         SockFlag::empty(),
+                         ETH_P_ARP.to_be()));
 
     if fd == -1 {
         return Err(Error::last_os_error());
@@ -146,7 +146,12 @@ pub fn gratuitous_arp(if_name: &str, ip: Ipv4Addr) -> io::Result<()> {
 
     let broadcast_mac = HwAddr::new(0xff, 0xff, 0xff, 0xff, 0xff, 0xff);
 
-    let frame = Box::new(ArpPacket::new(&mac, &ip, &broadcast_mac, &ip, ArpOp::Request, EtherType::Arp));
+    let frame = Box::new(ArpPacket::new(&mac,
+                                        &ip,
+                                        &broadcast_mac,
+                                        &ip,
+                                        ArpOp::Request,
+                                        EtherType::Arp));
 
     let f = &*frame as *const _ as *const c_void;
     let flen = size_of::<ArpPacket>();
@@ -154,8 +159,7 @@ pub fn gratuitous_arp(if_name: &str, ip: Ipv4Addr) -> io::Result<()> {
     let slen = size_of::<sockaddr_ll>() as u32;
 
     loop {
-        // TODO build safe interface
-        let rc = unsafe { sendto(fd, f, flen, 0, s, slen) };
+        let rc = ffi::sendto(fd, f, flen, 0, s, slen);
 
         if rc >= 0 {
             break;
@@ -174,6 +178,22 @@ pub fn gratuitous_arp(if_name: &str, ip: Ipv4Addr) -> io::Result<()> {
     }
 
     Ok(())
+}
+
+mod ffi {
+    use std::os::unix::io::RawFd;
+    use libc::{self, sockaddr, c_void, c_int, size_t, ssize_t, socklen_t};
+
+    // not using the nix sendto as it will take some work to make it compatible.
+    pub fn sendto(fd: RawFd,
+                  buf: *const c_void,
+                  blen: size_t,
+                  flags: c_int,
+                  socket: *const sockaddr,
+                  slen: socklen_t)
+                  -> ssize_t {
+        unsafe { libc::sendto(fd, buf, blen, flags, socket, slen) }
+    }
 }
 
 #[cfg(test)]
