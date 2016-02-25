@@ -5,8 +5,8 @@ language: rust
 
 rust:
   - nightly
-  - beta
-  - stable
+    #  - beta
+    #  - stable
 
 matrix:
   allow_failures:
@@ -14,14 +14,13 @@ matrix:
     - rust: beta
 
 before_script:
+  - ifconfig -a
+  - sh ./ip.sh
   - sudo apt-get -qq update
-  - sudo apt-get -y install libtool autoconf libpcap-dev sqlite3 libsqlite3-dev
-  - libtoolize
-  - autoreconf -i
-  - ./configure
+  - sudo apt-get -y install libpcap-dev sqlite3 libsqlite3-dev
 # See https://github.com/travis-ci/travis-ci/issues/1350
   - sudo sed -i -e 's/^Defaults\tsecure_path.*$//' /etc/sudoers
 
 script:
   - cargo build --verbose
-  - sudo cargo test --verbose
+  - sudo RUST_LOG=carp RUST_BACKTRACE=1 cargo test --verbose -- --nocapture

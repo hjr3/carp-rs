@@ -1,3 +1,4 @@
+
 // Copyright (c) 2016  Herman J. Radtke III <herman@hermanradtke.com>
 //
 // This file is part of carp-rs.
@@ -32,7 +33,7 @@ enum EtherType {
 
 enum ArpOp {
     Request = 1,
-    //Reply = 2,
+//    Reply = 2,
 }
 
 /// An Arp packet

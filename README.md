@@ -20,101 +20,94 @@ the COPYING.OLD file.
    * libpcap (http://www.tcpdump.org/) must be installed on your system, with
    development files (headers).
       * On Ubuntu: `apt-get install libtool autoconf gettext libpcap0.8 libpcap0.8-dev libpcap-dev sqlite3 libsqlite3-dev`
-   * Currently, the C code must first use autoconf before Rust can compile it. The traditional procedure:
-```
-$ libtoolize
-$ autoreconf -i
-$ ./configure
-```
-   * Once that is complete, you can run `cargo build`. This will build a static
-   `libcarp.a` library from the C code and build a shared Rust library that
-   links against `libcarp.a`.
 
-The original C software has been successfully tested on Linux 2.4, Linux 2.6, MacOS X,
-OpenBSD, MirBSD and NetBSD. That being said, I have made a number of changes as
-I integrate the existing code with Rust.
+The Rust library has only been tested with Ubuntu precise 64.
 
 ## Examples
 
 There is a basic example at `examples/basic.rs`. To run this example:
 
 ```
-sudo cargo run --example basic
+sudo RUST_LOG=carp=debug cargo run --example basic -- -i eth3 -s 10.0.2.40
 ```
+
+Note: carp uses the pcap library which requires root for certain operations.
 
 You should see some output similar to:
 
 ```
-2016-02-10T15:57:02.986205: [INFO] Using [eth0] as a network interface
-2016-02-10T15:57:02.986249: [WARNING] Warning: no script called when going up
-2016-02-10T15:57:02.986266: [WARNING] Warning: no script called when going down
-2016-02-10T15:57:02.987559: [INFO] Local advertised ethernet address is [08:00:27:4d:3c:39]
-2016-02-10T15:57:02.987983: [WARNING] Switching to state: BACKUP
-2016-02-10T15:57:06.001703: [WARNING] Switching to state: MASTER
+INFO:carp::carp: Using [eth3] as a network interface
+INFO:carp::carp: Local advertised ethernet address is [08:00:27:f4:18:d5]
+DEBUG:carp::carp: srcip = 10.0.2.40
+DEBUG:carp::carp: mcast = 224.0.0.18
+DEBUG:carp::carp: Next primary timeout in SystemTime { tv_sec: 1461942434, tv_nsec: 156471873 }
+DEBUG:carp::carp: Interface switched to running
+DEBUG:carp::carp: Next primary timeout in SystemTime { tv_sec: 1461942434, tv_nsec: 157813524 }
+INFO:carp::carp: Remote primary down. Switching to Primary state
+In my_up_callback()
+DEBUG:carp::carp: Next primary timeout in SystemTime { tv_sec: 1461942435, tv_nsec: 177767553 }
 ```
 
-Note: carp uses the pcap library which requires root for certain operations.
-This may change in the future.
 
-## Master Selection Process
+## Primary Selection Process
 
 When carp first runs, it starts as a backup and listens to the network
-to determine if it should become the master.  If at any time more than
+to determine if it should become the primary. If at any time more than
 three times the node's advertising interval (defined as the advertising
 base (seconds) plus a fudge factor, the advertising skew) passes without
 hearing a peer's CARP advertisement, the node will transition itself to
-being a master.
+being a primary.
 
-Transitioning from backup to master means:
+Transitioning from backup to primary means:
 
-   1. calling the specified callback to assign the vip to the local system
-   2. sending a gratuitous arp to the network to claim the vip
-   3. continuously sending CARP advertisements to the network every interval.
+   1. Calling the specified callback to assign the vip to the local system.
+   2. Sending a gratuitous arp to the network to claim the vip.
+   3. Continuously sending CARP advertisements to the network every interval.
 
-Transitioning from master to backup means:
+Transitioning from primary to backup means:
 
-   1. calling the specified callback to remove the vip from the local system
+   1. Calling the specified callback to remove the vip from the local system
 
 To understand how carp works, it's important to note that the
 advertisement interval is not only used as the time in between which
-each CARP advertisement is sent by the master, but also as a priority
-mechanism where shorter (i.e. more frequent) is better.  The interval
+each CARP advertisement is sent by the primary, but also as a priority
+mechanism where shorter (i.e. more frequent) is better. The interval
 base and skew values are stored in the CARP advertisement and are used
 by other nodes to make certain decisions.
 
-By default, once a node becomes the master, it will continue on
-indefinitely as the master.  If you like/want/need this behavior, or don't
-have a preferred master, then choose the same interval on all hosts.
+By default, once a node becomes the primary, it will continue on
+indefinitely as the primary. If you like/want/need this behavior, or don't
+have a preferred primary, then choose the same interval on all hosts.
 If for whatever reason you were to choose different intervals on the
 hosts, then over time the one with the shortest interval would tend to
-become the master as machines are rebooted, after failures, etc.
+become the primary as machines are rebooted, after failures, etc.
 
-Also of note is a conflict resolution algorithm that in case a master
-hears another, equal (in terms of its advertised interval) master, the
-one with the lower IP address will remain master and the other will
+Also of note is a conflict resolution algorithm that in case a primary
+hears another, equal (in terms of its advertised interval) primary, the
+one with the lower IP address will remain primary and the other will
 immediately demote itself.  This is simply to eliminate flapping and
-quickly determine who should remain master.  This situation should not
+quickly determine who should remain primary.  This situation should not
 happen very often but it can.
 
-If you want a "preferred" master to always be the master (even if another
-host is already the master), add the preempt switch and
+If you want a "preferred" primary to always be the primary (even if another
+host is already the primary), add the preempt switch and
 assign a shorter interval via the advertisement base and
 skew.  This will cause the preferred node to ignore a
-master who is advertising a longer interval and promote itself to master.
-The old master will quickly hear the preferred node advertising a shorter
+primary who is advertising a longer interval and promote itself to primary.
+The old primary will quickly hear the preferred node advertising a shorter
 interval and immediately demote itself.
 
-In summary, a backup will become master if:
+In summary, a backup will become primary if:
 
    * no one else advertises for 3 times its own advertisement interval
-   * you specified --preempt and it hears a master with a longer interval
+   * you specified --preempt and it hears a primary with a longer interval
 
-and a master will become backup if:
+and a primary will become backup if:
 
-   *  another master advertises a shorter interval
-   *  another master advertises the same interval, and has a lower IP address
+   *  another primary advertises a shorter interval
+   *  another primary advertises the same interval, and has a lower IP address
 
-## Authors
+## Original Authors
 
 The carp-rs project is based upon the hard work of many people on the original UCarp project.
 
