@@ -1,13 +1,20 @@
 [package]
 name = "carp"
 version = "0.1.0"
+license = "MIT/Apache-2.0"
 authors = ["Herman J. Radtke III <herman@hermanradtke.com>"]
-
-build = "build.rs"
+description = "A pure rust library for the Common Address Redundancy Protocol (CARP)."
+documentation = "https://github.com/hjr3/carp-rs"
+homepage = "https://github.com/hjr3/carp-rs"
+repository = "https://github.com/hjr3/carp-rs"
 
 [dependencies]
 libc = "0.2.7"
+log = "0.3.5"
+env_logger = "0.3.2"
 nix = { git = "https://github.com/nix-rust/nix", rev = "2bffa28" }
-
-[build-dependencies]
-gcc = "0.3"
+rust-crypto = "0.2.34"
+pcap = "0.5.3"
+byteorder = "0.4.2"
+getopts = "0.2.4"
+rand = "0.3"

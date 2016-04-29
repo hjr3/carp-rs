@@ -17,13 +17,19 @@
 
 use std::fmt;
 use std::io::{self, Error, ErrorKind};
-use libc::{sockaddr, c_int, c_char, c_ulong};
+use std::net::IpAddr;
+use std::os::unix::io::RawFd;
+use libc::{sockaddr, c_int, c_short, c_char, c_ulong};
 use nix::sys::socket::{socket, SockType, SockFlag, AddressFamily};
 
 const SIOCGIFHWADDR: c_ulong = 0x00008927;
 
 // TODO check if this changes across OSes
+const SIOCGIFFLAGS: c_ulong = 0x00008913;
 const SIOCGIFINDEX: c_ulong = 0x00008933;
+
+/// Interface RFC2863 OPER_UP
+const IFF_RUNNING: c_short = 0x40;
 
 const IFREQUNIONSIZE: usize = 24;
 
@@ -55,6 +61,11 @@ impl IfReqUnion {
                        (self.data[1] as c_int) << 16 |
                        (self.data[2] as c_int) <<  8 |
                        (self.data[3] as c_int))
+    }
+
+    fn as_short(&self) -> c_short {
+        c_short::from_be((self.data[0] as c_short) << 8 |
+                         (self.data[1] as c_short))
     }
 }
 
@@ -98,6 +109,10 @@ impl IfReq {
     pub fn ifr_ifindex(&self) -> c_int {
         self.union.as_int()
     }
+
+    pub fn ifr_flags(&self) -> c_short {
+        self.union.as_short()
+    }
 }
 
 impl Default for IfReq {
@@ -113,7 +128,7 @@ extern "C" {
     fn ioctl(fd: c_int, request: c_ulong, ifreq: *mut IfReq) -> c_int;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct HwAddr {
     a: u8,
     b: u8,
@@ -140,6 +155,28 @@ impl HwAddr {
     pub fn octets(&self) -> [u8; 6] {
         [self.a, self.b, self.c, self.d, self.e, self.f]
     }
+
+    /// Map a multicast ip address to a MAC address
+    ///
+    /// TODO: should i check for is_multicast?
+    pub fn from_multicast_ip(ip: IpAddr) -> HwAddr {
+        match ip {
+            IpAddr::V4(ip) => {
+                let octets = ip.octets();
+                HwAddr {
+                    a: 0x01,
+                    b: 0x00,
+                    c: 0x5e,
+                    d: octets[1] & 0x7f,
+                    e: octets[2],
+                    f: octets[3],
+                }
+            }
+            _ => {
+                panic!("IPv6 is not supported at this time");
+            }
+        }
+    }
 }
 
 impl fmt::Display for HwAddr {
@@ -158,9 +195,23 @@ impl fmt::Display for HwAddr {
     }
 }
 
+/// Friendly interface for SIOCGIFFLAGS response
+pub struct HwFlags {
+    flags: c_short,
+}
+
+impl HwFlags {
+
+    /// Determine if interface is running
+    pub fn is_running(&self) -> bool {
+        self.flags & IFF_RUNNING != 0
+    }
+}
+
 /// ioctl operations on a hardware interface
 pub struct HwIf {
     if_name: String,
+    fd: Option<RawFd>,
 }
 
 impl HwIf {
@@ -170,12 +221,18 @@ impl HwIf {
     pub fn new<S>(if_name: S) -> HwIf
         where S: Into<String>
     {
-        HwIf { if_name: if_name.into() }
+        HwIf { if_name: if_name.into(), fd: None }
+    }
+
+    /// Use user-specified fd when calling ioctl
+    ///
+    /// This allows the caller to create a socket and specifiy and custom socket options they want
+    /// prior to making the call to ioctl. Example: Setting up a socket with multicast.
+    pub fn use_raw_fd(&mut self, fd: RawFd) {
+        self.fd = Some(fd);
     }
 
     /// Get Hardware (MAC) address for the network interface
-    ///
-    /// The response looks something like: HwAddr("08:00:27:4d:3c:39")
     pub fn hwaddr(&self) -> io::Result<HwAddr> {
         let if_req = try!(self.ioctl(&self.if_name, SIOCGIFHWADDR));
 
@@ -198,11 +255,24 @@ impl HwIf {
         Ok(if_req.ifr_ifindex())
     }
 
+    /// Get the active flag word of the device.
+    pub fn flags(&self) -> io::Result<HwFlags> {
+        let if_req = try!(self.ioctl(&self.if_name, SIOCGIFFLAGS));
+
+        let hw_flags = HwFlags { flags: if_req.ifr_flags() };
+        Ok(hw_flags)
+    }
+
     fn ioctl(&self, if_name: &str, ident: c_ulong) -> io::Result<IfReq> {
-        let fd = try!(socket(AddressFamily::Inet,
-                             SockType::Datagram,
-                             SockFlag::empty(),
-                             0));
+
+        let fd = if self.fd.is_some() {
+            self.fd.unwrap()
+        } else {
+            try!(socket(AddressFamily::Inet,
+                        SockType::Datagram,
+                        SockFlag::empty(),
+                        0))
+        };
 
         let if_req = try!(IfReq::with_if_name(if_name));
         let mut req: Box<IfReq> = Box::new(if_req);
@@ -217,6 +287,9 @@ impl HwIf {
 
 #[cfg(test)]
 mod tests {
+    use std::net::IpAddr;
+    use std::net::Ipv4Addr;
+    use nix::sys::socket::{socket, SockType, SockFlag, AddressFamily};
     use super::*;
 
     #[test]
@@ -240,9 +313,39 @@ mod tests {
     }
 
     #[test]
+    fn test_hw_addr_from_multicast_ip() {
+        let addr = Ipv4Addr::new(224, 192, 16, 1);
+        let expected = HwAddr::new(0x01, 0x00, 0x5e, 0x40, 0x10, 0x01);
+
+        let given = HwAddr::from_multicast_ip(IpAddr::V4(addr));
+
+        assert_eq!(expected, given);
+    }
+
+    #[test]
     fn test_if_index() {
         // TODO dynamically get interface
         let hw_if = HwIf::new("eth0");
         assert!(hw_if.index().is_ok());
+    }
+
+    #[test]
+    fn test_if_flags() {
+        // TODO dynamically get interface
+        let hw_if = HwIf::new("eth0");
+        assert!(hw_if.flags().is_ok());
+    }
+
+    #[test]
+    fn test_if_flags_using_raw_fd() {
+        let fd = socket(AddressFamily::Inet,
+                             SockType::Datagram,
+                             SockFlag::empty(),
+                             0).unwrap();
+
+        // TODO dynamically get interface
+        let mut hw_if = HwIf::new("eth0");
+        hw_if.use_raw_fd(fd);
+        assert!(hw_if.flags().is_ok());
     }
 }

@@ -1,0 +1,11 @@
+--- ucarp.c	2016-04-16 14:12:37.189347963 +0000
++++ ucarp.c.fix	2016-04-16 14:13:38.752116683 +0000
+@@ -90,6 +90,8 @@
+     int option_index = 0;
+     int fodder;
+ 
++    debug = 1;
++
+ #ifdef HAVE_SETLOCALE
+     setlocale(LC_ALL, "");
+ #endif
