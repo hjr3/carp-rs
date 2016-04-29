@@ -12,7 +12,7 @@ repository = "https://github.com/hjr3/carp-rs"
 libc = "0.2.7"
 log = "0.3.5"
 env_logger = "0.3.2"
-nix = { git = "https://github.com/nix-rust/nix", rev = "2bffa28" }
+nix = "0.5.0"
 rust-crypto = "0.2.34"
 pcap = "0.5.3"
 byteorder = "0.4.2"
