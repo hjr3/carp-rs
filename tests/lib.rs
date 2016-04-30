@@ -3,8 +3,8 @@ extern crate carp;
 #[macro_use] extern crate log;
 extern crate env_logger;
 
+use std::env;
 use std::str::FromStr;
-use std::process::Command;
 
 /// Tests for the primary selection process
 ///
@@ -13,22 +13,21 @@ use std::process::Command;
 
 fn setup() -> carp::carp::Carp {
 
-    let output = Command::new("/sbin/ifconfig eth0 | /bin/grep 'inet addr:' | /usr/bin/cut -d: -f2 | /usr/bin/awk '{ print $1}'")
-        .output()
-        .unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
+    let ip = env::var("TEST_SRCIP").unwrap_or("10.0.2.40".to_string());
+    debug!("srcip = {}", ip);
 
-    let ip = String::from_utf8_lossy(&output.stdout);
-    println!("dynamic testing ip = {}", ip);
+    let interface = env::var("TEST_INF").unwrap_or("eth3".to_string());
+    debug!("interface = {}", interface);
 
     let mut config = carp::config::Config::new(
         FromStr::from_str("10.0.2.100").unwrap(),
         FromStr::from_str(&ip).unwrap(),
         "secret"
     );
-    config.set_interface("eth0");
+    config.set_interface(interface.as_ref());
     config.set_advbase(1);
     config.set_advskew(0);
-    let capture = carp::carp::Carp::default_pcap("eth0").unwrap();
+    let capture = carp::carp::Carp::default_pcap(&interface).unwrap();
     let mut carp = carp::carp::Carp::new(config, capture);
     carp.setup().unwrap();
 
@@ -36,7 +35,6 @@ fn setup() -> carp::carp::Carp {
 }
 
 #[test]
-#[ignore]
 fn test_role_is_backup_on_init() {
     let carp = setup();
 
@@ -44,7 +42,6 @@ fn test_role_is_backup_on_init() {
 }
 
 #[test]
-#[ignore]
 fn test_role_change_primary_on_timeout() {
     env_logger::init().ok().expect("Failed to init logger");
 
