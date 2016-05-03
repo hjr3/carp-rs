@@ -18,4 +18,4 @@ before_script:
 
 script:
   - cargo build --verbose
-  - sudo TEST_INF=eth0 TEST_SRCIP=$(sh ./ip.sh) RUST_LOG=carp RUST_BACKTRACE=1 cargo test --verbose -- --nocapture
+  - sudo TEST_INF=eth0 TEST_SRCIP=$(sh ./ip.sh) RUST_LOG=carp RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test --verbose -- --nocapture
