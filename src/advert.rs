@@ -16,7 +16,7 @@
 // along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
 
 use byteorder;
-use ip::IpHeader;
+use ip::Ipv4Header;
 use ether::EtherHeader;
 use ip_carp::CarpHeader;
 
@@ -27,12 +27,12 @@ use ip_carp::CarpHeader;
 #[repr(C, packed)]
 pub struct CarpPacket {
     ether_header: EtherHeader,
-    pub ip: IpHeader,
+    pub ip: Ipv4Header,
     pub carp: CarpHeader,
 }
 
 impl CarpPacket {
-    pub fn new(eh: EtherHeader, ip: IpHeader, ch: CarpHeader) -> CarpPacket {
+    pub fn new(eh: EtherHeader, ip: Ipv4Header, ch: CarpHeader) -> CarpPacket {
         CarpPacket {
             ether_header: eh,
             ip: ip,

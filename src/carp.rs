@@ -27,7 +27,7 @@ use std::result;
 use std::time::{SystemTime, Duration};
 use std::process;
 
-use libc::{uint8_t, uint32_t};
+use libc::{uint8_t, uint16_t};
 
 use nix::poll::{self, PollFd, EventFlags, POLLIN, POLLERR, POLLHUP};
 use nix::sys::signal;
@@ -48,7 +48,7 @@ use config::Config;
 use Result;
 use mac::{HwIf, HwAddr};
 use ether::{EtherHeader, EtherType};
-use ip::{self, IpHeader};
+use ip::{self, Ipv4Header, Ipv4HeaderBuilder};
 use ip_carp::CarpHeader;
 use advert::CarpPacket;
 use node;
@@ -530,7 +530,7 @@ impl Carp {
         };
 
         let eh_len = mem::size_of::<EtherHeader>();
-        let ip = match IpHeader::from_bytes(&packet.data[eh_len..]) {
+        let ip = match Ipv4Header::from_bytes(&packet.data[eh_len..]) {
             Ok(ip) => ip,
             Err(e) => {
                 warn!("Unable create Ip: {:?}", e);
@@ -538,7 +538,7 @@ impl Carp {
             }
         };
 
-        let ip_len = mem::size_of::<IpHeader>();
+        let ip_len = mem::size_of::<Ipv4Header>();
         //println!("size of ether header = {:?}", eh_len);
         //println!("size of ip header = {:?}", ip_len);
         //println!("size of carp header = {:?}", ::std::mem::size_of::<CarpHeader>());
@@ -597,7 +597,7 @@ impl Carp {
             }
         }
 
-        if IpHeader::checksum(&packet.data[eh_len + ip_len..]) != 0 {
+        if Ipv4Header::checksum(&packet.data[eh_len + ip_len..]) != 0 {
             warn!("Bad IP checksum");
             return Err(());
         }
@@ -793,26 +793,34 @@ impl Carp {
         ch.carp_md = md;
 
         let ch_bytes = ch.into_bytes().unwrap();
-        ch.carp_set_cksum(IpHeader::checksum(ch_bytes.as_slice()));
+        ch.carp_set_cksum(Ipv4Header::checksum(ch_bytes.as_slice()));
 
-        let total_length = mem::size_of::<IpHeader>() + mem::size_of::<CarpHeader>();
+        let srcip_v4 = match self.config.srcip {
+            IpAddr::V4(srcip) => srcip,
+            IpAddr::V6(_) => panic!("V6 not currently supported")
+        };
 
-        let mut ip = IpHeader::default();
-        ip.set_version(IpHeader::ipv4());
-        ip.tos = ip::Tos::LowDelay as u8;
-        ip.set_total_length(total_length as u16);
-        ip.generate_id();
-        ip.set_frag_off(ip::Flags::DontFragment as u16);
-        ip.ttl = CarpHeader::ttl();
-        ip.protocol = ip::Protocol::Carp as u8;
-        ip.set_saddr(ipaddr_to_uint(self.config.srcip));
-        ip.set_daddr(ipaddr_to_uint(self.config.mcast));
+        let mcast_v4 = match self.config.mcast {
+            IpAddr::V4(mcast) => mcast,
+            IpAddr::V6(_) => panic!("V6 not currently supported")
+        };
+
+        let mut ip = Ipv4HeaderBuilder::new()
+            .tos(ip::Tos::low_delay())
+            .data_length(mem::size_of::<CarpHeader>() as uint16_t)
+            .random_id()
+            .flags(ip::Flags::dont_fragment())
+            .ttl(CarpHeader::ttl())
+            .protocol(ip::Protocol::Carp)
+            .source_address(srcip_v4)
+            .destination_address(mcast_v4)
+            .build();
 
         let mut ch_bytes = ch.into_bytes().unwrap();
         let mut ip_bytes = ip.into_bytes().unwrap();
         ip_bytes.append(&mut ch_bytes);
 
-        ip.set_cksum(IpHeader::checksum(ip_bytes.as_slice()));
+        ip.set_cksum(Ipv4Header::checksum(ip_bytes.as_slice()));
 
         let dhost = if self.config.no_mcast {
             HwAddr::new(0xff, 0xff, 0xff, 0xff, 0xff, 0xff)
@@ -856,17 +864,6 @@ impl Carp {
     fn tear_down(&self) {
         // TODO pcap_close
         // TODO pcap_freecode
-    }
-}
-
-fn ipaddr_to_uint(ip: IpAddr) -> uint32_t {
-    match ip {
-        IpAddr::V4(ref ip) => {
-            BigEndian::read_u32(&ip.octets())
-        }
-        _ => {
-            panic!("IPv6 is not supported at this time");
-        }
     }
 }
 

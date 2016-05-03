@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
 
-use libc::{uint8_t, uint16_t, uint32_t};
-
-use rand::{self, Rng};
 use std::io::Cursor;
+use std::net::Ipv4Addr;
+
+use libc::{uint8_t, uint16_t, uint32_t};
+use rand::{self, Rng};
 use byteorder::{self, ByteOrder, BigEndian, ReadBytesExt, WriteBytesExt};
 
 pub enum Protocol {
@@ -26,7 +27,6 @@ pub enum Protocol {
 }
 
 // this is triggering doc tests and i do not know why. plus, i don't even think is a good approach
-// since i cannot reuse enum values. i will need to change these into constants.
 // Various Control Flags
 //
 // The flags are part of a larger 16 bit value. These three values represent the first 3 bits of
@@ -41,12 +41,33 @@ pub enum Protocol {
 //   |   | D | M |
 //   | 0 | F | F |
 //   +---+---+---+
-pub enum Flags {
-//    Reserved = 0x0,
-//    MayFragment = 0x0,
-    DontFragment = 0x4000,
-//    LastFragment = 0x0,
-//    MoreFragment = 0x2000,
+pub struct Flags(uint16_t);
+
+impl Flags {
+    #[inline]
+    pub fn reserved() -> Flags {
+        Flags(0x0)
+    }
+
+    #[inline]
+    pub fn may_fragment() -> Flags {
+        Flags(0x0)
+    }
+
+    #[inline]
+    pub fn dont_fragment() -> Flags {
+        Flags(0x4000)
+    }
+
+    #[inline]
+    pub fn last_fragment() -> Flags {
+        Flags(0x0)
+    }
+
+    #[inline]
+    pub fn more_fragment() -> Flags {
+        Flags(0x2000)
+    }
 }
 
 /// Type of Service
@@ -63,16 +84,35 @@ pub enum Flags {
 /// |   PRECEDENCE    |  D  |  T  |  R  |  0  |  0  |
 /// |                 |     |     |     |     |     |
 /// +-----+-----+-----+-----+-----+-----+-----+-----+
-pub enum Tos {
-//    NormalDelay = 0x0,
-    LowDelay = 0x10,
-//    NormalThroughput = 0x0,
-//    HighThroughput = 0x8,
-//    NormalReliability = 0x0,
-//    HighReliability = 0x4,
+pub struct Tos(uint8_t);
+
+impl Tos {
+    pub fn normal_delay() -> Tos {
+        Tos(0x0)
+    }
+
+    pub fn low_delay() -> Tos {
+        Tos(0x10)
+    }
+
+    pub fn normal_throughput() -> Tos {
+        Tos(0x0)
+    }
+
+    pub fn high_throughput() -> Tos {
+        Tos(0x8)
+    }
+
+    pub fn normal_reliability() -> Tos {
+        Tos(0x0)
+    }
+
+    pub fn high_reliability() -> Tos {
+        Tos(0x4)
+    }
 }
 
-/// Structure of an internet header, naked of options.
+/// Structure of an v4 internet header, naked of options.
 ///
 /// The struct aims to keep the byte representation compatible with C. This allows for the use of
 /// `from_bytes` as a safe method and transmute for speed. Transmute is not supported at this time.
@@ -81,7 +121,7 @@ pub enum Tos {
 /// See: https://tools.ietf.org/html/rfc791
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct IpHeader {
+pub struct Ipv4Header {
     /// Header length and version
     ///
     /// This is endian specific. Use helper methods.
@@ -96,6 +136,9 @@ pub struct IpHeader {
     pub tos: uint8_t,
 
     /// Total length
+    ///
+    /// Total Length is the length of the datagram, measured in octets,
+    /// including internet header and data.
     total_length: uint16_t,
 
     /// Identification
@@ -120,32 +163,9 @@ pub struct IpHeader {
     daddr: uint32_t,
 }
 
-impl IpHeader {
+impl Ipv4Header {
 
-    #[inline]
-    pub fn ipv4() -> uint8_t {
-        4
-        //let len = ::std::mem::size_of::<IpHeader>();
-        //let version = 4 << 4;
-
-        //len as u8 + version
-    }
-
-    //#[cfg(target_endian = "little")]
-    //#[inline]
-    //pub fn ipv4() -> uint8_t {
-    //    let version = 4;
-    //    let len = ::std::mem::size_of::<IpHeader>() << 4;
-
-    //    version + len as u8
-    //}
-
-    //pub fn generate_id() -> uint16_t {
-    //    let mut rng = rand::thread_rng();
-    //    rng.gen()
-    //}
-
-    pub fn from_bytes(buf: &[u8]) -> byteorder::Result<IpHeader> {
+    pub fn from_bytes(buf: &[u8]) -> byteorder::Result<Ipv4Header> {
         let mut rdr = Cursor::new(buf);
 
         let v_hl = try!(rdr.read_u8());
@@ -160,7 +180,7 @@ impl IpHeader {
         let saddr = try!(rdr.read_u32::<BigEndian>());
         let daddr = try!(rdr.read_u32::<BigEndian>());
 
-        Ok(IpHeader {
+        Ok(Ipv4Header {
             v_hl: v_hl,
             tos: tos,
             total_length: total_length,
@@ -191,7 +211,7 @@ impl IpHeader {
         Ok(wtr)
     }
 
-    /// Apply checksum value to bytes version of IpHeader
+    /// Apply checksum value to bytes version of Ipv4Header
     pub fn apply_cksum(buf: &mut [u8]) {
         let cksum = Self::checksum(buf);
 
@@ -293,8 +313,9 @@ impl IpHeader {
         self.frag_off
     }
 
-    pub fn set_frag_off(&mut self, frag_off: uint16_t) {
-        self.frag_off = frag_off;
+    pub fn set_frag_off(&mut self, frag_off: Flags) {
+        let Flags(f) = frag_off;
+        self.frag_off = f;
     }
 
     /// Checksum
@@ -328,15 +349,129 @@ impl IpHeader {
     }
 }
 
+/// Building a Ipv4Header struct
+///
+/// Ipv4Header has the same byte representation as `struct ip` in C. The
+/// builder pattern provides a better interface for dealing with byte order
+/// specific unions. It also means we can use types like `Ipv4Addr` instead
+/// of `c::in_addr`.
+#[derive(Default)]
+pub struct Ipv4HeaderBuilder {
+    version: uint8_t,
+    tos: uint8_t,
+    total_length: uint16_t,
+    id: uint16_t,
+    frag_off: uint16_t,
+    ttl: uint8_t,
+    protocol: uint8_t,
+    cksum: uint16_t,
+    saddr: uint32_t,
+    daddr: uint32_t,
+}
+
+impl Ipv4HeaderBuilder {
+    pub fn new() -> Ipv4HeaderBuilder {
+        let mut ipb = Self::default();
+        ipb.version = 4;
+        ipb
+    }
+
+    pub fn tos(&mut self, tos: Tos) -> &mut Ipv4HeaderBuilder {
+        let Tos(t) = tos;
+        self.tos = t;
+        self
+    }
+
+    pub fn data_length(&mut self, data_length: uint16_t) -> &mut Ipv4HeaderBuilder {
+        let header_length = ::std::mem::size_of::<Ipv4Header>();
+        self.total_length = header_length as uint16_t + data_length;
+        self
+    }
+
+    pub fn random_id(&mut self) -> &mut Ipv4HeaderBuilder {
+        let mut rng = rand::thread_rng();
+        self.id = rng.gen();
+        self
+    }
+
+    pub fn flags(&mut self, frag_off: Flags) -> &mut Ipv4HeaderBuilder {
+        let Flags(f) = frag_off;
+        self.frag_off = f;
+        self
+    }
+
+    pub fn ttl(&mut self, ttl: uint8_t) -> &mut Ipv4HeaderBuilder {
+        self.ttl = ttl;
+        self
+    }
+
+    pub fn protocol(&mut self, protocol: Protocol) -> &mut Ipv4HeaderBuilder {
+        self.protocol = protocol as uint8_t;
+        self
+    }
+
+    pub fn source_address(&mut self, addr: Ipv4Addr) -> &mut Ipv4HeaderBuilder {
+        self.saddr = BigEndian::read_u32(&addr.octets());
+        self
+    }
+
+    pub fn destination_address(&mut self, addr: Ipv4Addr) -> &mut Ipv4HeaderBuilder {
+        self.daddr = BigEndian::read_u32(&addr.octets());
+        self
+    }
+
+    pub fn build(&mut self) -> Ipv4Header {
+        let mut ip = Ipv4Header {
+            v_hl: 0,
+            tos: self.tos,
+            total_length: self.total_length,
+            id: self.id,
+            frag_off: self.frag_off,
+            ttl: self.ttl,
+            protocol: self.protocol,
+            cksum: self.cksum,
+            saddr: self.saddr,
+            daddr: self.daddr,
+        };
+
+        ip.set_version(self.version);
+        ip
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use std::net::Ipv4Addr;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_from_builder() {
+        let ip = Ipv4HeaderBuilder::new()
+            .tos(Tos::low_delay())
+            .data_length(20)
+            .flags(Flags::dont_fragment())
+            .ttl(255)
+            .protocol(Protocol::Carp)
+            .source_address(FromStr::from_str("10.0.0.2").unwrap())
+            .destination_address(FromStr::from_str("10.0.0.3").unwrap())
+            .build();
+
+        assert_eq!(4, ip.version());
+        assert_eq!(5, ip.ihl());
+        assert_eq!(40, ip.total_length());
+        assert_eq!(0x4000, ip.frag_off());
+        assert_eq!(255, ip.ttl);
+        assert_eq!(112, ip.protocol);
+        assert_eq!(167772162, ip.saddr());
+        assert_eq!(167772163, ip.daddr());
+        assert_eq!(0, ip.cksum());
+    }
 
     #[test]
     fn test_from_bytes() {
         let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0, 0, 18];
-        let iph = IpHeader::from_bytes(&bytes).unwrap();
+        let iph = Ipv4Header::from_bytes(&bytes).unwrap();
 
         assert_eq!(iph.version(), 4);
         assert_eq!(iph.ihl(), 5);
@@ -354,7 +489,7 @@ mod test {
     #[test]
     fn test_into_bytes() {
         let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0, 0, 18];
-        let iph = IpHeader::from_bytes(&bytes).unwrap();
+        let iph = Ipv4Header::from_bytes(&bytes).unwrap();
         let given = iph.into_bytes().unwrap();
 
         assert_eq!(bytes, given.as_slice());
@@ -363,7 +498,7 @@ mod test {
     //#[test]
     //fn test_transmute() {
     //    let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0, 0, 18];
-    //    let iph: IpHeader = unsafe { ::std::mem::transmute(bytes) };
+    //    let iph: Ipv4Header = unsafe { ::std::mem::transmute(bytes) };
 
     //    assert_eq!(iph.version(), 4);
     //    assert_eq!(iph.ihl(), 5);
@@ -382,7 +517,7 @@ mod test {
     fn test_cksum_zero_len() {
         let buf = [];
 
-        assert_eq!(0, IpHeader::checksum(&buf));
+        assert_eq!(0, Ipv4Header::checksum(&buf));
     }
 
     #[test]
@@ -390,7 +525,7 @@ mod test {
         let mut buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 0, 0, 192, 168, 0, 1, 192, 168, 0, 199];
         let expected = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199];
 
-        IpHeader::apply_cksum(&mut buf);
+        Ipv4Header::apply_cksum(&mut buf);
         assert_eq!(expected, buf);
     }
 
@@ -399,31 +534,21 @@ mod test {
         let mut buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 0, 0, 192, 168, 0, 1, 192, 168, 0, 199, 0];
         let expected = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199, 0];
 
-        IpHeader::apply_cksum(&mut buf);
+        Ipv4Header::apply_cksum(&mut buf);
         assert_eq!(expected, buf);
     }
 
     #[test]
     fn test_verify_cksum_even_len() {
-        //use byteorder::{BigEndian, WriteBytesExt};
-
-        //let header = [0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0xb861, 0xc0a8, 0x0001, 0xc0a8, 0x00c7];
-        //let mut buf = vec![];
-
-        //for val in header.iter() {
-        //    buf.write_u16::<BigEndian>(*val).unwrap();
-        //}
-        //println!("{:?}", buf);
-
         let buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199];
 
-        assert_eq!(0, IpHeader::checksum(&buf));
+        assert_eq!(0, Ipv4Header::checksum(&buf));
     }
 
     #[test]
     fn test_verify_cksum_odd_len() {
         let buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199, 0];
 
-        assert_eq!(0, IpHeader::checksum(&buf));
+        assert_eq!(0, Ipv4Header::checksum(&buf));
     }
 }
