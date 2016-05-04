@@ -29,6 +29,7 @@ use std::process;
 
 use libc::{uint8_t, uint16_t};
 
+use nix;
 use nix::poll::{self, PollFd, EventFlags, POLLIN, POLLERR, POLLHUP};
 use nix::sys::signal;
 use nix::sys::socket::{self, ip_mreq, socket, setsockopt, SockType, SockFlag, AddressFamily};
@@ -657,7 +658,9 @@ impl Carp {
                     }
                     node::Role::Backup => {
                         warn!("Preferred primary advertised: {}. Going back to backup role.", saddr_ip);
-                        self.send_advert();
+                        self.send_advert().unwrap_or_else(|e| {
+                            error!("Failed to send advertisement: {}", e);
+                        });
 
                         self.state = State::Backup;
                         self.down_callback();
@@ -671,7 +674,9 @@ impl Carp {
                         warn!("Putting remote primary {} down.", saddr_ip);
                         self.state = State::Primary;
 
-                        self.send_advert();
+                        self.send_advert().unwrap_or_else(|e| {
+                            error!("Failed to send advertisement: {}", e);
+                        });
 
                         self.delayed_arp += 1;
 
@@ -725,7 +730,9 @@ impl Carp {
             self.state = State::Primary;
             self.up_callback();
 
-            self.send_advert();
+            self.send_advert().unwrap_or_else(|e| {
+                error!("Failed to send advertisement: {}", e);
+            });
 
             self.delayed_arp += 1;
 
@@ -750,7 +757,9 @@ impl Carp {
         // if within 1 millisecond, then we can advertise
         if self.ad_tmo.is_some() {
             if now > self.ad_tmo.unwrap() {
-                self.send_advert();
+                self.send_advert().unwrap_or_else(|e| {
+                    error!("Failed to send advertisement: {}", e);
+                });
             } else {
                 // TODO handle failure here
                 let duration = self.ad_tmo.unwrap().duration_since(now).unwrap();
@@ -758,7 +767,9 @@ impl Carp {
                 let diff_ms = (duration.as_secs() * 1000) + ((duration.subsec_nanos() / 1000) as u64);
 
                 if diff_ms <= 1 {
-                    self.send_advert();
+                    self.send_advert().unwrap_or_else(|e| {
+                        error!("Failed to send advertisement: {}", e);
+                    });
                 }
             }
         }
@@ -768,7 +779,7 @@ impl Carp {
     // * primary timeout - aka we have not heard from primary server in a long time
     // * advert timeout - aka we have not been able to send an advert due to some system issue
     // * the remote primary is down - this is triggered from a few areas
-    fn send_advert(&mut self) {
+    fn send_advert(&mut self) -> Result<()> {
         trace!("Sending advertisement");
 
         if self.counter.is_none() {
@@ -792,7 +803,7 @@ impl Carp {
         ch.carp_set_counter(self.counter.unwrap());
         ch.carp_md = md;
 
-        let ch_bytes = ch.into_bytes().unwrap();
+        let ch_bytes = try!(ch.into_bytes());
         ch.carp_set_cksum(Ipv4Header::checksum(ch_bytes.as_slice()));
 
         let srcip_v4 = match self.config.srcip {
@@ -816,8 +827,8 @@ impl Carp {
             .destination_address(mcast_v4)
             .build();
 
-        let mut ch_bytes = ch.into_bytes().unwrap();
-        let mut ip_bytes = ip.into_bytes().unwrap();
+        let mut ch_bytes = try!(ch.into_bytes());
+        let mut ip_bytes = try!(ip.into_bytes());
         ip_bytes.append(&mut ch_bytes);
 
         ip.set_cksum(Ipv4Header::checksum(ip_bytes.as_slice()));
@@ -832,12 +843,26 @@ impl Carp {
 
         let eh = EtherHeader::new(&dhost, &shost, EtherType::Ip);
         let cp = CarpPacket::new(eh, ip, ch);
-        let buf = cp.into_bytes().unwrap();
+        let buf = try!(cp.into_bytes());
 
-        write(self.capture.as_raw_fd(), &buf).unwrap();
+        loop {
+            let rc = write(self.capture.as_raw_fd(), &buf);
 
-        // TODO handle interrupt
+            if rc.is_ok() {
+                break;
+            } else {
+                let err = rc.unwrap_err();
+                match err.errno() {
+                    nix::Errno::EINTR => {}
+                    _ => {
+                        error!("Failed to write advertisement: {}", err);
+                    }
+                }
+            }
+        }
+
         // TODO handle advert send errors
+
         if self.delayed_arp > 0 {
             self.delayed_arp -= 1;
         }
@@ -846,7 +871,7 @@ impl Carp {
             if self.state == State::Primary {
                 match self.config.srcip {
                     IpAddr::V4(srcip) => {
-                        gratuitous_arp(self.interface.as_ref(), srcip).unwrap();
+                        try!(gratuitous_arp(self.interface.as_ref(), srcip));
                     }
                     _ => {
                         panic!("IPv6 is not supported at this time");
@@ -859,6 +884,8 @@ impl Carp {
         if self.config.advbase != 255 || self.config.advskew != 255 {
             self.ad_tmo = Some(self.calc_next_timeout(1));
         }
+
+        Ok(())
     }
 
     fn tear_down(&self) {

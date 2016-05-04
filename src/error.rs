@@ -18,6 +18,8 @@
 use std::io;
 use std::fmt;
 
+use byteorder;
+use nix;
 use pcap;
 
 #[derive(Debug)]
@@ -33,6 +35,8 @@ pub enum Error {
     CarpFailure,
     Pcap(pcap::Error),
     Io(io::Error),
+    ByteOrder(byteorder::Error),
+    Nix(nix::Error),
 }
 
 impl fmt::Display for Error {
@@ -51,6 +55,8 @@ impl fmt::Display for Error {
             CarpFailure => write!(fmt, "CarpFailure"),
             Pcap(ref err) => write!(fmt, "{}", err),
             Io(ref err) => write!(fmt, "{}", err),
+            ByteOrder(ref err) => write!(fmt, "{}", err),
+            Nix(ref err) => write!(fmt, "{}", err),
         }
     }
 }
@@ -64,5 +70,17 @@ impl From<pcap::Error> for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Error::Io(err)
+    }
+}
+
+impl From<byteorder::Error> for Error {
+    fn from(err: byteorder::Error) -> Self {
+        Error::ByteOrder(err)
+    }
+}
+
+impl From<nix::Error> for Error {
+    fn from(err: nix::Error) -> Self {
+        Error::Nix(err)
     }
 }
