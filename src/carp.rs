@@ -18,7 +18,7 @@
 use std::cmp;
 use std::fmt;
 use std::mem;
-use std::io::{self};
+use std::io;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
@@ -70,12 +70,8 @@ impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
         match *self {
-            State::Primary => {
-                write!(f, "Primary")
-            }
-            State::Backup => {
-                write!(f, "Backup")
-            }
+            State::Primary => write!(f, "Primary"),
+            State::Backup => write!(f, "Backup"),
         }
     }
 }
@@ -130,12 +126,16 @@ impl Carp {
     }
 
     /// Register callback when role changes from backup to primary
-    pub fn on_up<F>(&mut self, cb: F) where F: Fn() + 'static {
+    pub fn on_up<F>(&mut self, cb: F)
+        where F: Fn() + 'static
+    {
         self.up_cb = Some(Box::new(cb));
     }
 
     /// Register callback when role changes from primary to backup
-    pub fn on_down<F>(&mut self, cb: F) where F: Fn() + 'static {
+    pub fn on_down<F>(&mut self, cb: F)
+        where F: Fn() + 'static
+    {
         self.down_cb = Some(Box::new(cb));
     }
 
@@ -267,10 +267,9 @@ impl Carp {
         trace!("setup_signal_handlers");
 
         if self.config.shutdown_at_exit == true {
-            let sig_action = signal::SigAction::new(
-                signal::SigHandler::Handler(sighandler_exit),
-                signal::SA_NODEFER,
-                signal::SigSet::empty());
+            let sig_action = signal::SigAction::new(signal::SigHandler::Handler(sighandler_exit),
+                                                    signal::SA_NODEFER,
+                                                    signal::SigSet::empty());
 
             unsafe {
                 try!(signal::sigaction(signal::SIGINT, &sig_action));
@@ -280,10 +279,9 @@ impl Carp {
             }
         }
 
-        let sig_action = signal::SigAction::new(
-            signal::SigHandler::Handler(sighandler_usr),
-            signal::SA_NODEFER,
-            signal::SigSet::empty());
+        let sig_action = signal::SigAction::new(signal::SigHandler::Handler(sighandler_usr),
+                                                signal::SA_NODEFER,
+                                                signal::SigSet::empty());
 
         unsafe {
             try!(signal::sigaction(signal::SIGUSR1, &sig_action));
@@ -303,18 +301,14 @@ impl Carp {
 
         if self.config.no_mcast == false {
             let srcip = match self.net_ipaddr_to_nix_ipaddr(self.config.srcip) {
-                socket::IpAddr::V4(ip) => {
-                    ip
-                }
+                socket::IpAddr::V4(ip) => ip,
                 _ => {
                     panic!("IPv6 is not supported at this time");
                 }
             };
 
             let mcast = match self.net_ipaddr_to_nix_ipaddr(self.config.mcast) {
-                socket::IpAddr::V4(ip) => {
-                    ip
-                }
+                socket::IpAddr::V4(ip) => ip,
                 _ => {
                     panic!("IPv6 is not supported at this time");
                 }
@@ -331,9 +325,7 @@ impl Carp {
 
     fn net_ipaddr_to_nix_ipaddr(&self, ip: IpAddr) -> socket::IpAddr {
         match ip {
-            IpAddr::V4(ref ip) => {
-                socket::IpAddr::V4(socket::Ipv4Addr::from_std(ip))
-            }
+            IpAddr::V4(ref ip) => socket::IpAddr::V4(socket::Ipv4Addr::from_std(ip)),
             _ => {
                 panic!("IPv6 is not supported at this time");
             }
@@ -375,11 +367,16 @@ impl Carp {
         let flag = unsafe { received_signal };
         if flag != 0 {
 
-            unsafe { received_signal = 0; }
+            unsafe {
+                received_signal = 0;
+            }
 
             match flag {
                 1 => {
-                    info!("{} on {} id {}", self.state, self.interface, self.config.vhid);
+                    info!("{} on {} id {}",
+                          self.state,
+                          self.interface,
+                          self.config.vhid);
                 }
                 2 => {
                     debug!("Caught signal (USR2) considering going down");
@@ -398,7 +395,9 @@ impl Carp {
                     // callback is async, so this might be tricky
                     process::exit(0);
                 }
-                _ => { /* skip */ }
+                _ => {
+                    // skip
+                }
             }
         }
 
@@ -452,12 +451,12 @@ impl Carp {
         let nfds = try!(poll::poll(&mut pfds, max as i32));
 
         // TODO push this up the stack
-        //if nfds.is_err() {
+        // if nfds.is_err() {
         //    let error = io::Error::from(nfds.unwrap_err());
         //    if error.kind() == ErrorKind::Interrupted {
         //        return Ok(false);
         //    }
-        //}
+        // }
 
         if self.poll_revent_error(&pfds).is_err() {
             return Err(io::Error::new(io::ErrorKind::Other, "Poll revent error"));
@@ -489,9 +488,7 @@ impl Carp {
                 let now = SystemTime::now();
 
                 let t = match ad_tmo.duration_since(now) {
-                    Ok(t) => {
-                        t
-                    }
+                    Ok(t) => t,
                     Err(e) => {
                         error!("Error calculating timeout: {}. Defaulting to 10000 ms", e);
                         Duration::from_secs(10)
@@ -508,9 +505,9 @@ impl Carp {
 
 
             // TODO move this up in the stack
-            //if ((sc.sc_state != BACKUP) && (shutdown_at_exit != 0)) {
+            // if ((sc.sc_state != BACKUP) && (shutdown_at_exit != 0)) {
             //    trigger_down_callback();
-            //}
+            // }
 
             Err(())
         } else {
@@ -540,11 +537,11 @@ impl Carp {
         };
 
         let ip_len = mem::size_of::<Ipv4Header>();
-        //println!("size of ether header = {:?}", eh_len);
-        //println!("size of ip header = {:?}", ip_len);
-        //println!("size of carp header = {:?}", ::std::mem::size_of::<CarpHeader>());
-        //println!("size of data = {:?}", &packet.data.len());
-        //println!("data = {:?}", &packet.data);
+        // println!("size of ether header = {:?}", eh_len);
+        // println!("size of ip header = {:?}", ip_len);
+        // println!("size of carp header = {:?}", ::std::mem::size_of::<CarpHeader>());
+        // println!("size of data = {:?}", &packet.data.len());
+        // println!("data = {:?}", &packet.data);
 
         let ch = match CarpHeader::from_bytes(&packet.data[eh_len + ip_len..]) {
             Ok(ip) => ip,
@@ -620,7 +617,8 @@ impl Carp {
 
         self.counter = Some(ch.carp_counter());
 
-        let skew = if self.config.preempt && (self.config.advskew as usize) < ch.carp_bulk_update_min_delay() {
+        let skew = if self.config.preempt &&
+                      (self.config.advskew as usize) < ch.carp_bulk_update_min_delay() {
             ch.carp_bulk_update_min_delay() as u8
         } else {
             self.config.advskew
@@ -646,7 +644,8 @@ impl Carp {
             node::Role::Primary => {
                 match role {
                     node::Role::Primary => {
-                        warn!("Non-preferred primary advertised: {}. Reasserting primary role.", saddr_ip);
+                        warn!("Non-preferred primary advertised: {}. Reasserting primary role.",
+                              saddr_ip);
                         match self.config.srcip {
                             IpAddr::V4(srcip) => {
                                 gratuitous_arp(self.interface.as_ref(), srcip).unwrap();
@@ -657,7 +656,8 @@ impl Carp {
                         }
                     }
                     node::Role::Backup => {
-                        warn!("Preferred primary advertised: {}. Going back to backup role.", saddr_ip);
+                        warn!("Preferred primary advertised: {}. Going back to backup role.",
+                              saddr_ip);
                         self.send_advert().unwrap_or_else(|e| {
                             error!("Failed to send advertisement: {}", e);
                         });
@@ -692,11 +692,9 @@ impl Carp {
 
     fn generate_digest(&self, counter: u64) -> MacResult {
         let mut hmac = Hmac::new(Sha1::new(), self.config.password.as_bytes());
-        hmac.input(&[
-            CarpHeader::version(),
-            CarpHeader::advertisement(),
-            self.config.vhid, // why is the C code doing `& 0xFF` here?
-        ]);
+        hmac.input(&[CarpHeader::version(),
+                     CarpHeader::advertisement(),
+                     self.config.vhid /* why is the C code doing `& 0xFF` here? */]);
 
         match self.config.vaddr {
             IpAddr::V4(ref vaddr) => {
@@ -707,7 +705,7 @@ impl Carp {
             }
         }
 
-        let mut buf: [u8; 8]  = [0; 8];
+        let mut buf: [u8; 8] = [0; 8];
         BigEndian::write_u64(&mut buf, counter);
         hmac.input(&buf);
 
@@ -744,8 +742,8 @@ impl Carp {
         trace!("Checking timeouts");
         let now = SystemTime::now();
 
-        //debug!("now = {:?}", now);
-        //debug!("self.pd_tmo = {:?}", self.pd_tmo);
+        // debug!("now = {:?}", now);
+        // debug!("self.pd_tmo = {:?}", self.pd_tmo);
 
         if self.pd_tmo.is_some() && now > self.pd_tmo.unwrap() {
             self.handle_remote_primary_down();
@@ -764,7 +762,8 @@ impl Carp {
                 // TODO handle failure here
                 let duration = self.ad_tmo.unwrap().duration_since(now).unwrap();
 
-                let diff_ms = (duration.as_secs() * 1000) + ((duration.subsec_nanos() / 1000) as u64);
+                let diff_ms = (duration.as_secs() * 1000) +
+                              ((duration.subsec_nanos() / 1000) as u64);
 
                 if diff_ms <= 1 {
                     self.send_advert().unwrap_or_else(|e| {
@@ -808,24 +807,24 @@ impl Carp {
 
         let srcip_v4 = match self.config.srcip {
             IpAddr::V4(srcip) => srcip,
-            IpAddr::V6(_) => panic!("V6 not currently supported")
+            IpAddr::V6(_) => panic!("V6 not currently supported"),
         };
 
         let mcast_v4 = match self.config.mcast {
             IpAddr::V4(mcast) => mcast,
-            IpAddr::V6(_) => panic!("V6 not currently supported")
+            IpAddr::V6(_) => panic!("V6 not currently supported"),
         };
 
         let mut ip = Ipv4HeaderBuilder::new()
-            .tos(ip::Tos::low_delay())
-            .data_length(mem::size_of::<CarpHeader>() as uint16_t)
-            .random_id()
-            .flags(ip::Flags::dont_fragment())
-            .ttl(CarpHeader::ttl())
-            .protocol(ip::Protocol::Carp)
-            .source_address(srcip_v4)
-            .destination_address(mcast_v4)
-            .build();
+                         .tos(ip::Tos::low_delay())
+                         .data_length(mem::size_of::<CarpHeader>() as uint16_t)
+                         .random_id()
+                         .flags(ip::Flags::dont_fragment())
+                         .ttl(CarpHeader::ttl())
+                         .protocol(ip::Protocol::Carp)
+                         .source_address(srcip_v4)
+                         .destination_address(mcast_v4)
+                         .build();
 
         let mut ch_bytes = try!(ch.into_bytes());
         let mut ip_bytes = try!(ip.into_bytes());
@@ -902,13 +901,13 @@ pub fn calc_adv_freq(advbase: u8, advskew: u8, ratio: u8) -> Duration {
     Duration::new(secs, nanos as u32)
 }
 
-extern fn sighandler_exit(_: signal::SigNum) {
+extern "C" fn sighandler_exit(_: signal::SigNum) {
     unsafe {
         received_signal = 15;
     }
 }
 
-extern fn sighandler_usr(sig: signal::SigNum) {
+extern "C" fn sighandler_usr(sig: signal::SigNum) {
     unsafe {
         match sig {
             signal::SIGUSR1 => {
@@ -929,7 +928,7 @@ mod tests {
     use super::*;
     use std::time::Duration;
 
-    //#[test]
+    // #[test]
     // fn test_bpf_rule() {
     //    let expect = "proto 112 and src host not 127.0.0.1";
     //    let ip = "127.0.0.1".parse().unwrap();

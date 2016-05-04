@@ -33,7 +33,7 @@ enum EtherType {
 
 enum ArpOp {
     Request = 1,
-//    Reply = 2,
+    // Reply = 2,
 }
 
 /// An Arp packet

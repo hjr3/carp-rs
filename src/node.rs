@@ -113,65 +113,107 @@ mod tests {
 
     #[test]
     fn test_primary_to_backup() {
-        let node = Node::new(Role::Primary, Duration::from_secs(2), "10.0.0.2".parse().unwrap());
-        let other = Node::new(Role::Primary, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
+        let node = Node::new(Role::Primary,
+                             Duration::from_secs(2),
+                             "10.0.0.2".parse().unwrap());
+        let other = Node::new(Role::Primary,
+                              Duration::from_secs(1),
+                              "10.0.0.1".parse().unwrap());
 
         assert_eq!(Role::Backup, node.role_change(&other, Alignment::Passive));
 
-        let node = Node::new(Role::Primary, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
-        let other = Node::new(Role::Primary, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
+        let node = Node::new(Role::Primary,
+                             Duration::from_secs(1),
+                             "10.0.0.2".parse().unwrap());
+        let other = Node::new(Role::Primary,
+                              Duration::from_secs(1),
+                              "10.0.0.1".parse().unwrap());
 
         assert_eq!(Role::Primary, node.role_change(&other, Alignment::Passive));
 
-        let node = Node::new(Role::Primary, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
-        let other = Node::new(Role::Primary, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
+        let node = Node::new(Role::Primary,
+                             Duration::from_secs(1),
+                             "10.0.0.1".parse().unwrap());
+        let other = Node::new(Role::Primary,
+                              Duration::from_secs(1),
+                              "10.0.0.2".parse().unwrap());
 
         assert_eq!(Role::Backup, node.role_change(&other, Alignment::Passive));
     }
 
     #[test]
     fn test_backup_to_primary() {
-        let node = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(2), "10.0.0.2".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(1),
+                             "10.0.0.1".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(2),
+                              "10.0.0.2".parse().unwrap());
 
-        assert_eq!(Role::Primary, node.role_change(&other, Alignment::Aggressive));
+        assert_eq!(Role::Primary,
+                   node.role_change(&other, Alignment::Aggressive));
 
-        let node = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(1),
+                             "10.0.0.2".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(1),
+                              "10.0.0.1".parse().unwrap());
 
-        assert_eq!(Role::Primary, node.role_change(&other, Alignment::Aggressive));
+        assert_eq!(Role::Primary,
+                   node.role_change(&other, Alignment::Aggressive));
     }
 
     #[test]
     fn test_backup_non_aggressive() {
-        let node = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(2), "10.0.0.2".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(1),
+                             "10.0.0.1".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(2),
+                              "10.0.0.2".parse().unwrap());
 
         assert_eq!(Role::Backup, node.role_change(&other, Alignment::Passive));
     }
 
     #[test]
     fn test_cmp_less() {
-        let node = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(2), "10.0.0.1".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(1),
+                             "10.0.0.2".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(2),
+                              "10.0.0.1".parse().unwrap());
         let given = node.cmp(&other);
         assert_eq!(Ordering::Less, given);
 
-        let node = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(1),
+                             "10.0.0.2".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(1),
+                              "10.0.0.1".parse().unwrap());
         let given = node.cmp(&other);
         assert_eq!(Ordering::Less, given);
     }
 
     #[test]
     fn test_cmp_greater() {
-        let node = Node::new(Role::Backup, Duration::from_secs(2), "10.0.0.1".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(2),
+                             "10.0.0.1".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(1),
+                              "10.0.0.2".parse().unwrap());
         let given = node.cmp(&other);
         assert_eq!(Ordering::Greater, given);
 
-        let node = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.1".parse().unwrap());
-        let other = Node::new(Role::Backup, Duration::from_secs(1), "10.0.0.2".parse().unwrap());
+        let node = Node::new(Role::Backup,
+                             Duration::from_secs(1),
+                             "10.0.0.1".parse().unwrap());
+        let other = Node::new(Role::Backup,
+                              Duration::from_secs(1),
+                              "10.0.0.2".parse().unwrap());
         let given = node.cmp(&other);
         assert_eq!(Ordering::Greater, given);
     }
