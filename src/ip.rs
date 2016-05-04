@@ -164,7 +164,6 @@ pub struct Ipv4Header {
 }
 
 impl Ipv4Header {
-
     pub fn from_bytes(buf: &[u8]) -> byteorder::Result<Ipv4Header> {
         let mut rdr = Cursor::new(buf);
 
@@ -257,7 +256,7 @@ impl Ipv4Header {
     /// Internet Header Length
     #[cfg(target_endian = "big")]
     #[inline]
-    pub fn ihl(&self) -> uint8_t{
+    pub fn ihl(&self) -> uint8_t {
         self.v_hl >> 4
     }
 
@@ -298,7 +297,7 @@ impl Ipv4Header {
 
     /// Identification
     #[inline]
-    pub fn id(&self) ->uint16_t {
+    pub fn id(&self) -> uint16_t {
         self.id
     }
 
@@ -309,7 +308,7 @@ impl Ipv4Header {
 
     /// Fragment offset field
     #[inline]
-    pub fn frag_off(&self) ->uint16_t {
+    pub fn frag_off(&self) -> uint16_t {
         self.frag_off
     }
 
@@ -320,7 +319,7 @@ impl Ipv4Header {
 
     /// Checksum
     #[inline]
-    pub fn cksum(&self) ->uint16_t {
+    pub fn cksum(&self) -> uint16_t {
         self.cksum
     }
 
@@ -330,7 +329,7 @@ impl Ipv4Header {
 
     /// Source address
     #[inline]
-    pub fn saddr(&self) ->uint32_t {
+    pub fn saddr(&self) -> uint32_t {
         self.saddr
     }
 
@@ -340,7 +339,7 @@ impl Ipv4Header {
 
     /// Destination address
     #[inline]
-    pub fn daddr(&self) ->uint32_t {
+    pub fn daddr(&self) -> uint32_t {
         self.daddr
     }
 
@@ -448,14 +447,14 @@ mod test {
     #[test]
     fn test_from_builder() {
         let ip = Ipv4HeaderBuilder::new()
-            .tos(Tos::low_delay())
-            .data_length(20)
-            .flags(Flags::dont_fragment())
-            .ttl(255)
-            .protocol(Protocol::Carp)
-            .source_address(FromStr::from_str("10.0.0.2").unwrap())
-            .destination_address(FromStr::from_str("10.0.0.3").unwrap())
-            .build();
+                     .tos(Tos::low_delay())
+                     .data_length(20)
+                     .flags(Flags::dont_fragment())
+                     .ttl(255)
+                     .protocol(Protocol::Carp)
+                     .source_address(FromStr::from_str("10.0.0.2").unwrap())
+                     .destination_address(FromStr::from_str("10.0.0.3").unwrap())
+                     .build();
 
         assert_eq!(4, ip.version());
         assert_eq!(5, ip.ihl());
@@ -470,7 +469,8 @@ mod test {
 
     #[test]
     fn test_from_bytes() {
-        let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0, 0, 18];
+        let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0,
+                               0, 18];
         let iph = Ipv4Header::from_bytes(&bytes).unwrap();
 
         assert_eq!(iph.version(), 4);
@@ -488,15 +488,16 @@ mod test {
 
     #[test]
     fn test_into_bytes() {
-        let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0, 0, 18];
+        let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0,
+                               0, 18];
         let iph = Ipv4Header::from_bytes(&bytes).unwrap();
         let given = iph.into_bytes().unwrap();
 
         assert_eq!(bytes, given.as_slice());
     }
 
-    //#[test]
-    //fn test_transmute() {
+    // #[test]
+    // fn test_transmute() {
     //    let bytes: [u8; 20] = [69, 16, 0, 56, 36, 97, 64, 0, 255, 112, 0, 0, 10, 0, 2, 30, 224, 0, 0, 18];
     //    let iph: Ipv4Header = unsafe { ::std::mem::transmute(bytes) };
 
@@ -511,7 +512,7 @@ mod test {
     //    assert_eq!(iph.cksum, 0);
     //    assert_eq!(Ipv4Addr::from(iph.saddr), "10.0.2.30".parse().unwrap());
     //    assert_eq!(Ipv4Addr::from(iph.daddr), "224.0.0.18".parse().unwrap());
-    //}
+    // }
 
     #[test]
     fn test_cksum_zero_len() {
@@ -523,7 +524,8 @@ mod test {
     #[test]
     fn test_calculate_cksum_even_len() {
         let mut buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 0, 0, 192, 168, 0, 1, 192, 168, 0, 199];
-        let expected = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199];
+        let expected = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0,
+                        199];
 
         Ipv4Header::apply_cksum(&mut buf);
         assert_eq!(expected, buf);
@@ -531,8 +533,10 @@ mod test {
 
     #[test]
     fn test_calculate_cksum_odd_len() {
-        let mut buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 0, 0, 192, 168, 0, 1, 192, 168, 0, 199, 0];
-        let expected = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199, 0];
+        let mut buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 0, 0, 192, 168, 0, 1, 192, 168, 0, 199,
+                       0];
+        let expected = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0,
+                        199, 0];
 
         Ipv4Header::apply_cksum(&mut buf);
         assert_eq!(expected, buf);
@@ -547,7 +551,8 @@ mod test {
 
     #[test]
     fn test_verify_cksum_odd_len() {
-        let buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199, 0];
+        let buf = [69, 0, 0, 115, 0, 0, 64, 0, 64, 17, 184, 97, 192, 168, 0, 1, 192, 168, 0, 199,
+                   0];
 
         assert_eq!(0, Ipv4Header::checksum(&buf));
     }

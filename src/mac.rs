@@ -57,15 +57,13 @@ impl IfReqUnion {
     }
 
     fn as_int(&self) -> c_int {
-        c_int::from_be((self.data[0] as c_int) << 24 |
-                       (self.data[1] as c_int) << 16 |
-                       (self.data[2] as c_int) <<  8 |
+        c_int::from_be((self.data[0] as c_int) << 24 | (self.data[1] as c_int) << 16 |
+                       (self.data[2] as c_int) << 8 |
                        (self.data[3] as c_int))
     }
 
     fn as_short(&self) -> c_short {
-        c_short::from_be((self.data[0] as c_short) << 8 |
-                         (self.data[1] as c_short))
+        c_short::from_be((self.data[0] as c_short) << 8 | (self.data[1] as c_short))
     }
 }
 
@@ -201,7 +199,6 @@ pub struct HwFlags {
 }
 
 impl HwFlags {
-
     /// Determine if interface is running
     pub fn is_running(&self) -> bool {
         self.flags & IFF_RUNNING != 0
@@ -221,7 +218,10 @@ impl HwIf {
     pub fn new<S>(if_name: S) -> HwIf
         where S: Into<String>
     {
-        HwIf { if_name: if_name.into(), fd: None }
+        HwIf {
+            if_name: if_name.into(),
+            fd: None,
+        }
     }
 
     /// Use user-specified fd when calling ioctl
@@ -339,9 +339,10 @@ mod tests {
     #[test]
     fn test_if_flags_using_raw_fd() {
         let fd = socket(AddressFamily::Inet,
-                             SockType::Datagram,
-                             SockFlag::empty(),
-                             0).unwrap();
+                        SockType::Datagram,
+                        SockFlag::empty(),
+                        0)
+                     .unwrap();
 
         // TODO dynamically get interface
         let mut hw_if = HwIf::new("eth0");

@@ -27,7 +27,7 @@ pub const ETH_ALEN: usize = 6;
 /// Ethernet frame types
 pub enum EtherType {
     Ip = 0x0800,
-    //Arp = 0x0806,
+    Arp = 0x0806,
 }
 
 /// Ethernet header
@@ -58,23 +58,19 @@ impl EtherHeader {
     pub fn from_bytes(data: &[u8]) -> byteorder::Result<EtherHeader> {
         let mut rdr = Cursor::new(data);
 
-        let ether_dhost = [
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8())
-        ];
+        let ether_dhost = [try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8())];
 
-        let ether_shost = [
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8()),
-            try!(rdr.read_u8())
-        ];
+        let ether_shost = [try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8()),
+                           try!(rdr.read_u8())];
 
         let ether_type = try!(rdr.read_u16::<BigEndian>());
 
@@ -110,27 +106,14 @@ mod test {
 
     #[test]
     fn test_from_bytes() {
-        let bytes: [uint8_t; 14] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x5e, 0x00, 0x00, 0x01, 0x08, 0x00];
+        let bytes: [uint8_t; 14] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x5e, 0x00,
+                                    0x00, 0x01, 0x08, 0x00];
 
         let eh = EtherHeader::from_bytes(&bytes).unwrap();
 
-        let shost: [uint8_t; ETH_ALEN] = [
-            0x00,
-            0x00,
-            0x5e,
-            0x00,
-            0x00,
-            0x01,
-        ];
+        let shost: [uint8_t; ETH_ALEN] = [0x00, 0x00, 0x5e, 0x00, 0x00, 0x01];
 
-        let dhost: [uint8_t; ETH_ALEN] = [
-            0xff,
-            0xff,
-            0xff,
-            0xff,
-            0xff,
-            0xff,
-        ];
+        let dhost: [uint8_t; ETH_ALEN] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
 
         let expected = EtherHeader {
             ether_dhost: dhost,
@@ -143,23 +126,9 @@ mod test {
 
     #[test]
     fn test_into_bytes() {
-        let shost: [uint8_t; ETH_ALEN] = [
-            0x00,
-            0x00,
-            0x5e,
-            0x00,
-            0x00,
-            0x01,
-        ];
+        let shost: [uint8_t; ETH_ALEN] = [0x00, 0x00, 0x5e, 0x00, 0x00, 0x01];
 
-        let dhost: [uint8_t; ETH_ALEN] = [
-            0xff,
-            0xff,
-            0xff,
-            0xff,
-            0xff,
-            0xff,
-        ];
+        let dhost: [uint8_t; ETH_ALEN] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
 
         let eh = EtherHeader {
             ether_dhost: dhost,
@@ -169,7 +138,8 @@ mod test {
 
         let bytes = eh.into_bytes().unwrap();
 
-        let expected: [uint8_t; 14] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x5e, 0x00, 0x00, 0x01, 0x08, 0x00];
+        let expected: [uint8_t; 14] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x5e, 0x00,
+                                       0x00, 0x01, 0x08, 0x00];
 
         assert_eq!(expected, bytes[..]);
     }
