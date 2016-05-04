@@ -187,7 +187,6 @@ pub fn gratuitous_arp(if_name: &str, ip: Ipv4Addr) -> io::Result<()> {
             match err.kind() {
                 ErrorKind::Interrupted => {}
                 _ => {
-                    println!("err = {}", err);
                     return Err(err);
                 }
             }
