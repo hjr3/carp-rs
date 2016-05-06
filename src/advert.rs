@@ -16,8 +16,8 @@
 // along with carp-rs.  If not, see <http://www.gnu.org/licenses/>.
 
 use byteorder;
-use ip::Ipv4Header;
-use ether::EtherHeader;
+use net::ip::Ipv4Header;
+use net::ether::EtherHeader;
 use ip_carp::CarpHeader;
 
 /// A Carp packet

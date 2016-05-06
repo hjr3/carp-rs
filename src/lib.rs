@@ -30,12 +30,10 @@ extern crate byteorder;
 
 use std::result;
 
+pub mod net;
+
 pub mod config;
-pub mod ether;
-pub mod ip;
 pub mod ip_carp;
-pub mod mac;
-pub mod arp;
 pub mod error;
 pub mod advert;
 pub mod carp;
