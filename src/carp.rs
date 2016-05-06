@@ -53,7 +53,7 @@ use ip::{self, Ipv4Header, Ipv4HeaderBuilder};
 use ip_carp::CarpHeader;
 use advert::CarpPacket;
 use node;
-use socket::gratuitous_arp;
+use arp::gratuitous_arp;
 
 const ETHERNET_MTU: i32 = 1500;
 const IPPROTO_CARP: uint8_t = 112;

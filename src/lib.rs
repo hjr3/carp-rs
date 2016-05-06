@@ -40,6 +40,5 @@ pub mod error;
 pub mod advert;
 pub mod carp;
 pub mod node;
-pub mod socket;
 
 pub type Result<T> = result::Result<T, error::Error>;
