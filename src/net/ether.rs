@@ -20,7 +20,7 @@ use libc::{uint8_t, uint16_t};
 use std::io::Cursor;
 use byteorder::{self, BigEndian, ReadBytesExt, WriteBytesExt};
 
-use mac::HwAddr;
+use net::mac::HwAddr;
 
 pub const ETH_ALEN: usize = 6;
 

@@ -20,7 +20,7 @@ use std::mem::size_of;
 use std::net::Ipv4Addr;
 use libc::{sockaddr, sockaddr_ll, AF_PACKET, uint8_t, uint16_t, c_void, c_int};
 use nix::sys::socket::{socket, SockType, SockFlag, AddressFamily};
-use mac::{HwIf, HwAddr};
+use net::mac::{HwIf, HwAddr};
 
 const ETH_ALEN: usize = 6;
 const ETH_P_ARP: c_int = 0x0806;

@@ -47,13 +47,13 @@ use byteorder::{ByteOrder, BigEndian};
 
 use config::Config;
 use Result;
-use mac::{HwIf, HwAddr};
-use ether::{EtherHeader, EtherType};
-use ip::{self, Ipv4Header, Ipv4HeaderBuilder};
+use net::mac::{HwIf, HwAddr};
+use net::ether::{EtherHeader, EtherType};
+use net::ip::{self, Ipv4Header, Ipv4HeaderBuilder};
 use ip_carp::CarpHeader;
 use advert::CarpPacket;
 use node;
-use arp::gratuitous_arp;
+use net::arp::gratuitous_arp;
 
 const ETHERNET_MTU: i32 = 1500;
 const IPPROTO_CARP: uint8_t = 112;

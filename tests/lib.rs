@@ -6,9 +6,9 @@ extern crate env_logger;
 use std::env;
 use std::str::FromStr;
 
-use carp::ip::{Ipv4Header, Ipv4HeaderBuilder, Flags, Tos, Protocol};
-use carp::mac::HwAddr;
-use carp::ether::{EtherHeader, EtherType};
+use carp::net::ip::{Ipv4Header, Ipv4HeaderBuilder, Flags, Tos, Protocol};
+use carp::net::mac::HwAddr;
+use carp::net::ether::{EtherHeader, EtherType};
 use carp::ip_carp::CarpHeader;
 use carp::advert::CarpPacket;
 use carp::carp::Carp;
