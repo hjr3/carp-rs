@@ -30,9 +30,9 @@ enum EtherType {
     Arp = 0x0806,
 }
 
-enum ArpOp {
+pub enum ArpOp {
     Request = 1,
-    //Reply = 2,
+    Reply = 2,
 }
 
 /// An Arp packet
