@@ -40,7 +40,6 @@ use pcap::{self, Capture, Active, Packet};
 
 use crypto::mac::{Mac, MacResult};
 use crypto::hmac::Hmac;
-use crypto::digest::Digest;
 use crypto::sha1::Sha1;
 
 use byteorder::{ByteOrder, BigEndian};
@@ -537,11 +536,6 @@ impl Carp {
         };
 
         let ip_len = mem::size_of::<Ipv4Header>();
-        // println!("size of ether header = {:?}", eh_len);
-        // println!("size of ip header = {:?}", ip_len);
-        // println!("size of carp header = {:?}", ::std::mem::size_of::<CarpHeader>());
-        // println!("size of data = {:?}", &packet.data.len());
-        // println!("data = {:?}", &packet.data);
 
         let ch = match CarpHeader::from_bytes(&packet.data[eh_len + ip_len..]) {
             Ok(ip) => ip,
@@ -617,7 +611,8 @@ impl Carp {
 
         self.counter = Some(ch.carp_counter());
 
-        let skew = if self.config.preempt &&
+        // TODO this should be checking if we _suppress_ preempt
+        let skew = if false &&
                       (self.config.advskew as usize) < ch.carp_bulk_update_min_delay() {
             ch.carp_bulk_update_min_delay() as u8
         } else {
@@ -638,7 +633,13 @@ impl Carp {
         let node = node::Node::new(state, adv_freq, self.config.srcip);
         let other = node::Node::new(node::Role::Primary, ch_adv_freq, saddr_ip);
 
-        let role = node.role_change(&other, node::Alignment::Aggressive);
+        let alignment = if self.config.preempt == true {
+            node::Alignment::Aggressive
+        } else {
+            node::Alignment::Passive
+        };
+
+        let role = node.role_change(&other, alignment);
 
         match state {
             node::Role::Primary => {

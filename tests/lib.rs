@@ -34,6 +34,7 @@ fn setup(advbase: u8) -> Carp {
     config.set_interface(interface.as_ref());
     config.set_advbase(advbase);
     config.set_advskew(0);
+    config.set_preempt(true);
     let capture = carp::carp::Carp::default_pcap(&interface).unwrap();
     let mut carp = carp::carp::Carp::new(config, capture);
     carp.setup().unwrap();
@@ -94,7 +95,6 @@ fn test_role_change_primary_on_timeout() {
 
 #[test]
 fn test_role_change_backup_if_larger_advert_base() {
-    env_logger::init().ok().expect("Failed to init logger");
     let cp = CarpPacket::new(
         setup_ether_header(),
         setup_ipv4_header("10.0.0.2"),
@@ -126,10 +126,10 @@ fn test_role_change_primary_if_shorter_advert_base() {
 }
 
 #[test]
-fn test_role_change_backup_if_equal_advbase_lower_ip() {
+fn test_role_change_backup_if_equal_advbase_higher_ip() {
     let cp = CarpPacket::new(
         setup_ether_header(),
-        setup_ipv4_header("10.244.244.244"),
+        setup_ipv4_header("10.0.0.2"),
         setup_carp_header(1)
     );
 
@@ -145,10 +145,11 @@ fn test_role_change_backup_if_equal_advbase_lower_ip() {
 }
 
 #[test]
-fn test_role_stay_primary_if_equal_advbase_higher_ip() {
+fn test_role_stay_primary_if_equal_advbase_lower_ip() {
+    //env_logger::init().ok().expect("Failed to init logger");
     let cp = CarpPacket::new(
         setup_ether_header(),
-        setup_ipv4_header("10.0.0.2"),
+        setup_ipv4_header("10.244.244.244"),
         setup_carp_header(1)
     );
 

@@ -31,6 +31,7 @@ fn main() {
     config.set_interface(if_name.as_ref());
     config.set_advbase(1);
     config.set_advskew(1);
+    config.set_preempt(true);
 
     let capture = carp::carp::Carp::default_pcap(&if_name).unwrap();
     let mut carp = carp::carp::Carp::new(config, capture);

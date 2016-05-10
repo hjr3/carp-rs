@@ -32,11 +32,11 @@ use std::result;
 
 pub mod net;
 
-pub mod config;
-pub mod ip_carp;
-pub mod error;
+mod error;
+mod node;
 pub mod advert;
+pub mod ip_carp;
+pub mod config;
 pub mod carp;
-pub mod node;
 
 pub type Result<T> = result::Result<T, error::Error>;

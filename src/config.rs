@@ -117,7 +117,7 @@ impl Config {
             vhid: 1,
             password: password.into(),
             advbase: 1,
-            advskew: 1,
+            advskew: 0,
             dead_ratio: 3,
             interface: None,
             mcast: FromStr::from_str("224.0.0.18").unwrap(),
@@ -147,5 +147,9 @@ impl Config {
 
     pub fn set_advskew(&mut self, advskew: u8) {
         self.advskew = advskew;
+    }
+
+    pub fn set_preempt(&mut self, preempt: bool) {
+        self.preempt = preempt;
     }
 }
