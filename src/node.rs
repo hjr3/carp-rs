@@ -87,8 +87,8 @@ impl PartialOrd for Node {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self.adv_freq == other.adv_freq {
             Some(match self.ip.cmp(&other.ip) {
-                Ordering::Less => Ordering::Greater,
-                Ordering::Greater => Ordering::Less,
+                Ordering::Less => Ordering::Less,
+                Ordering::Greater => Ordering::Greater,
                 Ordering::Equal => Ordering::Less,
             })
 
@@ -112,7 +112,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_primary_to_backup() {
+    fn test_primary_role_change() {
         let node = Node::new(Role::Primary,
                              Duration::from_secs(2),
                              "10.0.0.2".parse().unwrap());
@@ -124,25 +124,25 @@ mod tests {
 
         let node = Node::new(Role::Primary,
                              Duration::from_secs(1),
-                             "10.0.0.2".parse().unwrap());
-        let other = Node::new(Role::Primary,
-                              Duration::from_secs(1),
-                              "10.0.0.1".parse().unwrap());
-
-        assert_eq!(Role::Primary, node.role_change(&other, Alignment::Passive));
-
-        let node = Node::new(Role::Primary,
-                             Duration::from_secs(1),
                              "10.0.0.1".parse().unwrap());
         let other = Node::new(Role::Primary,
                               Duration::from_secs(1),
                               "10.0.0.2".parse().unwrap());
 
+        assert_eq!(Role::Primary, node.role_change(&other, Alignment::Passive));
+
+        let node = Node::new(Role::Primary,
+                             Duration::from_secs(1),
+                             "10.0.0.2".parse().unwrap());
+        let other = Node::new(Role::Primary,
+                              Duration::from_secs(1),
+                              "10.0.0.1".parse().unwrap());
+
         assert_eq!(Role::Backup, node.role_change(&other, Alignment::Passive));
     }
 
     #[test]
-    fn test_backup_to_primary() {
+    fn test_backup_role_change() {
         let node = Node::new(Role::Backup,
                              Duration::from_secs(1),
                              "10.0.0.1".parse().unwrap());
@@ -155,17 +155,14 @@ mod tests {
 
         let node = Node::new(Role::Backup,
                              Duration::from_secs(1),
-                             "10.0.0.2".parse().unwrap());
+                             "10.0.0.1".parse().unwrap());
         let other = Node::new(Role::Backup,
                               Duration::from_secs(1),
-                              "10.0.0.1".parse().unwrap());
+                              "10.0.0.2".parse().unwrap());
 
         assert_eq!(Role::Primary,
                    node.role_change(&other, Alignment::Aggressive));
-    }
 
-    #[test]
-    fn test_backup_non_aggressive() {
         let node = Node::new(Role::Backup,
                              Duration::from_secs(1),
                              "10.0.0.1".parse().unwrap());
@@ -194,7 +191,7 @@ mod tests {
                               Duration::from_secs(1),
                               "10.0.0.1".parse().unwrap());
         let given = node.cmp(&other);
-        assert_eq!(Ordering::Less, given);
+        assert_eq!(Ordering::Greater, given);
     }
 
     #[test]
@@ -215,6 +212,6 @@ mod tests {
                               Duration::from_secs(1),
                               "10.0.0.2".parse().unwrap());
         let given = node.cmp(&other);
-        assert_eq!(Ordering::Greater, given);
+        assert_eq!(Ordering::Less, given);
     }
 }
